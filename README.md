@@ -9,6 +9,12 @@ npm install
 npm run dev
 ```
 
+## Deploy to GitHub Pages
+
+Push this repository to GitHub. In **Settings → Pages → Build and deployment**, set the source to **GitHub Actions**. The workflow in `.github/workflows/deploy.yml` builds and deploys on every push to `main`, or can be started manually from the Actions tab.
+
+The production build uses the project-site base path `/minecraft-torch-planner/`. If you rename the GitHub repository or publish it at a custom domain, update `base` in `vite.config.ts` to match the Pages URL.
+
 ## Use
 
 - Choose the old safe-light threshold (8+) or the modern threshold (1+).
