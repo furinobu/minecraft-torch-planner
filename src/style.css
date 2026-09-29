@@ -24,8 +24,8 @@ button { color: inherit; }
 .brand-muted { color: #858b7f; font-weight: 500; }
 .topbar-note { color: #7e857b; font: 11px 'DM Mono', monospace; letter-spacing: .02em; }
 .utility-nav { display: flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid #333b32; border-radius: 5px; background: #181d18; }
-.utility-nav button { border: 0; border-radius: 3px; padding: 6px 9px; background: transparent; color: #8e9688; font-size: 10px; cursor: pointer; }
-.utility-nav button.active { color: #f0d49f; background: #3c3425; }
+.utility-nav a { display: inline-block; border: 0; border-radius: 3px; padding: 6px 9px; background: transparent; color: #8e9688; font-size: 10px; text-decoration: none; cursor: pointer; }
+.utility-nav a.active { color: #f0d49f; background: #3c3425; }
 .utility-hidden { display: none !important; }
 .hero { max-width: 800px; padding: 54px 0 44px; }
 .eyebrow { color: var(--green); font: 10px 'DM Mono', monospace; letter-spacing: .13em; display: flex; align-items: center; gap: 9px; }

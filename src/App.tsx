@@ -12,6 +12,10 @@ type Tool = "floor" | "wall" | "empty";
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
+function utilityFromHash(): "torches" | "slimes" {
+  return window.location.hash === "#/slime-finder" ? "slimes" : "torches";
+}
+
 function resizeGrid(old: Uint8Array, oldWidth: number, oldHeight: number, width: number, height: number) {
   const next = new Uint8Array(width * height).fill(2);
   for (let y = 0; y < Math.min(oldHeight, height); y += 1) {
@@ -54,7 +58,7 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
-  const [utility, setUtility] = useState<"torches" | "slimes">("torches");
+  const [utility, setUtility] = useState<"torches" | "slimes">(utilityFromHash);
   const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
@@ -93,6 +97,22 @@ export default function App() {
   };
 
   useEffect(() => () => workerRef.current?.terminate(), []);
+
+  useEffect(() => {
+    const syncUtilityFromHash = () => {
+      setUtility(utilityFromHash());
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("hashchange", syncUtilityFromHash);
+    return () => window.removeEventListener("hashchange", syncUtilityFromHash);
+  }, []);
+
+  useEffect(() => {
+    if (utility !== "slimes") return;
+    workerRef.current?.terminate();
+    workerRef.current = null;
+    setCalculating(false);
+  }, [utility]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -287,12 +307,12 @@ export default function App() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="Minecraft utilities home">
+        <a className="brand" href="#/torch-planner" aria-label="Minecraft utilities home">
           <span className="brand-mark">✦</span><span>MINECRAFT<span className="brand-muted">TOOLS</span></span>
         </a>
         <nav className="utility-nav" aria-label="Minecraft utilities">
-          <button className={utility === "torches" ? "active" : ""} onClick={() => setUtility("torches")}>Torch planner</button>
-          <button className={utility === "slimes" ? "active" : ""} onClick={() => { cancelPlan(); setUtility("slimes"); }}>Slime finder</button>
+          <a className={utility === "torches" ? "active" : ""} href="#/torch-planner" aria-current={utility === "torches" ? "page" : undefined}>Torch planner</a>
+          <a className={utility === "slimes" ? "active" : ""} href="#/slime-finder" aria-current={utility === "slimes" ? "page" : undefined}>Slime finder</a>
         </nav>
       </header>
 

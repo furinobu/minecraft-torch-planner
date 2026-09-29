@@ -23,7 +23,9 @@ The production build uses the project-site base path `/minecraft-torch-planner/`
 - Ask the planner to place torches. It searches for a minimum set, marks when a time limit prevents it from proving optimality, and shows each passable cell's block light level from 0 to 14.
 - Use **Slime finder** to search a Java seed for the densest 16 × 16 chunk square. Set a block-coordinate center and search radius; the result shows its slime chunks, center, and northwest corner coordinates.
 
-World data and slime chunk searches run in the browser and are not uploaded. The slime finder accepts Java numeric seeds and text seeds. The default search radius is 256 chunks and the maximum is 2048 chunks.
+Each utility has its own shareable URL: `#/torch-planner` and `#/slime-finder`. Hash routes keep direct links working on GitHub Pages.
+
+World data and slime chunk searches run in the browser and are not uploaded. The slime finder accepts Java numeric seeds and text seeds. Its optimized search runs in a Rust WebAssembly module inside a browser worker. Building requires Rust with the `wasm32-unknown-unknown` target. The default search radius is 256 chunks; the maximum is 512 chunks, which checks 1,050,625 candidate 16 × 16 areas.
 
 Torch planner world-folder import currently reads Java Edition `.mca` region files with standard gzip/zlib compression and heightmaps. It imports the top surface but does not infer walls. Crops are limited to 64 × 64 cells so the exact search stays useful.
 

@@ -94,7 +94,7 @@ export default function SlimeChunkFinder() {
             {searching ? <><span className="spinner" /> Searching…</> : <>Find densest area <span>→</span></>}
           </button>
         </form>
-        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. The search runs locally in your browser.</p>
+        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. At the 512-chunk maximum, it compares 1,025 × 1,025 candidate areas in WebAssembly.</p>
         {error && <p className="plan-error" role="alert">{error}</p>}
       </div>
 
