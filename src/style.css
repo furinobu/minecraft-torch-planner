@@ -130,6 +130,43 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .slime-cell { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #444d43; border-radius: 2px; background: #2b312a; color: #fff0c8; font-size: 12px; }
 .slime-cell.is-slime { border-color: #a8ba83; background: #667b51; box-shadow: inset 0 0 0 1px #a8ba8350; }
 .slime-search-stats { color: #727b6f; font: 9px 'DM Mono', monospace; margin: 10px 0 0; }
+.farm-demo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(270px, .8fr); gap: 16px; align-items: start; }
+.farm-demo-map, .farm-demo-results { min-width: 0; padding: 18px; }
+.farm-demo-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.farm-demo-heading h2 { margin: 6px 0 0; font: 600 17px 'Space Grotesk', sans-serif; }
+.farm-demo-kicker { color: #8b9585; font: 9px 'DM Mono', monospace; letter-spacing: .08em; }
+.farm-demo-help { margin: 10px 0 12px; color: #929a8e; font-size: 10px; line-height: 1.5; }
+.farm-demo-map-scroll { max-width: 100%; overflow: auto; border: 1px solid #41493e; border-radius: 5px; background: #1b201a; touch-action: none; }
+.farm-range-map { display: block; width: 100%; min-width: 360px; height: auto; aspect-ratio: 1; touch-action: none; user-select: none; }
+.farm-map-background { fill: #1b201a; }
+.farm-grid-line { stroke: #313930; stroke-width: .7; }
+.farm-grid-line.major { stroke: #57614f; stroke-width: 1.2; }
+.farm-axis-label { fill: #737d6e; font: 8px 'DM Mono', monospace; }
+.farm-demo-marker { cursor: grab; touch-action: none; }
+.farm-demo-marker:active { cursor: grabbing; }
+.farm-marker-label { fill: #f4f2e9; stroke: #171b17; stroke-width: 3px; paint-order: stroke; font: 8px 'DM Sans', sans-serif; pointer-events: none; }
+.player-marker-label { fill: #171b17; font: 700 8px 'DM Sans', sans-serif; pointer-events: none; }
+.farm-demo-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; padding-top: 12px; color: #929a8e; font-size: 9px; }
+.farm-demo-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.farm-demo-legend i { display: inline-block; width: 16px; height: 0; border-top: 2px dashed #79bdd1; }
+.farm-demo-legend .safe-line { width: 9px; border-top-style: solid; }
+.farm-demo-legend .player-dot { width: 8px; height: 8px; border: 0; border-radius: 50%; background: #79bdd1; }
+.farm-demo-legend .farm-dot { width: 8px; height: 8px; border: 0; border-radius: 2px; background: #a8ba83; }
+.farm-demo-axis { margin: 9px 0 0; color: #697366; font: 9px 'DM Mono', monospace; }
+.farm-demo-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.farm-demo-stats > div { display: grid; gap: 4px; min-width: 0; padding: 10px; border: 1px solid #353c32; border-radius: 5px; background: #1b201a; }
+.farm-demo-stats strong { color: #f0c376; font: 600 20px 'Space Grotesk', sans-serif; }
+.farm-demo-stats span { color: #899182; font-size: 9px; }
+.farm-result-list { display: grid; gap: 8px; margin-top: 12px; }
+.farm-result { min-width: 0; padding: 10px; border: 1px solid #353c32; border-radius: 5px; background: #1b201a; }
+.farm-result-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.farm-result-title strong { color: #dfe4d7; font: 600 11px 'Space Grotesk', sans-serif; }
+.farm-result-status { flex: 0 0 auto; padding: 4px 6px; border: 1px solid #41483e; border-radius: 3px; color: #8c9587; font: 8px 'DM Mono', monospace; }
+.farm-result-status.shared { border-color: #75613f; color: #efc376; background: #30291e; }
+.farm-result-status.reachable { border-color: #50654d; color: #b3c795; background: #242e22; }
+.farm-result small { display: block; margin-top: 7px; color: #7f897a; font: 9px 'DM Mono', monospace; }
+.farm-result p { margin: 5px 0 0; color: #9ca496; font: 9px 'DM Mono', monospace; }
+.farm-demo-caveat { margin: 12px 0 0; padding-top: 11px; border-top: 1px solid #353c32; color: #778071; font-size: 9px; line-height: 1.5; }
 .spinner { display: inline-block; width: 11px; height: 11px; vertical-align: -2px; border: 2px solid #8e7147; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .footnote { display: flex; justify-content: space-between; gap: 20px; padding: 22px 0; color: #737c70; font-size: 9px; line-height: 1.5; }
@@ -163,6 +200,10 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .radius-field { grid-column: 1 / -1; }
   .slime-result-heading { align-items: flex-start; flex-direction: column; }
   .slime-coordinate-summary { grid-template-columns: 1fr; }
+  .farm-demo { grid-template-columns: 1fr; }
+  .farm-demo-map, .farm-demo-results { padding: 15px; }
   .footnote { flex-direction: column; gap: 8px; }
   .footnote-links { justify-content: flex-start; }
+  .topbar { height: auto; min-height: 60px; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+  .utility-nav { max-width: 100%; overflow-x: auto; }
 }

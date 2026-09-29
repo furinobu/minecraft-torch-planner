@@ -10,6 +10,7 @@ export default defineConfig(({ command }) => ({
         main: "index.html",
         torchPlanner: "torch-planner/index.html",
         slimeFinder: "slime-finder/index.html",
+        farmOverlap: "farm-overlap/index.html",
       },
     },
   },

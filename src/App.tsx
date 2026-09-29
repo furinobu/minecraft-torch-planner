@@ -6,6 +6,7 @@ import type { ImportedRegion, RegionChoice } from "./worldFolder";
 import { getLightLevels } from "./torchPlanner";
 import type { TorchPlan } from "./torchPlanner";
 import SlimeChunkFinder from "./SlimeChunkFinder";
+import FarmRangeDemo from "./FarmRangeDemo";
 
 type Rule = "legacy" | "modern";
 type Tool = "floor" | "wall" | "empty";
@@ -13,9 +14,11 @@ type PaintDrag = { pointerId: number; startX: number; startY: number; endX: numb
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
-function utilityFromPath(): "torches" | "slimes" {
+function utilityFromPath(): "torches" | "slimes" | "farm" {
   const path = window.location.pathname.replace(/\/+$/, "");
-  return path.endsWith("/slime-finder") ? "slimes" : "torches";
+  if (path.endsWith("/slime-finder")) return "slimes";
+  if (path.endsWith("/farm-overlap")) return "farm";
+  return "torches";
 }
 
 function resizeGrid(old: Uint8Array, oldWidth: number, oldHeight: number, width: number, height: number) {
@@ -360,6 +363,7 @@ export default function App() {
         <nav className="utility-nav" aria-label="Minecraft utilities">
           <a className={utility === "torches" ? "active" : ""} href={`${import.meta.env.BASE_URL}torch-planner/`} aria-current={utility === "torches" ? "page" : undefined}>Torch planner</a>
           <a className={utility === "slimes" ? "active" : ""} href={`${import.meta.env.BASE_URL}slime-finder/`} aria-current={utility === "slimes" ? "page" : undefined}>Slime finder</a>
+          <a className={utility === "farm" ? "active" : ""} href={`${import.meta.env.BASE_URL}farm-overlap/`} aria-current={utility === "farm" ? "page" : undefined}>Farm demo</a>
         </nav>
       </header>
 
@@ -368,14 +372,18 @@ export default function App() {
           <div className="eyebrow"><span className="eyebrow-dot" /> MINECRAFT LIGHTING PLANNER</div>
           <h1>Light the whole area.<br /><em>Carry fewer torches.</em></h1>
           <p>Draw a build area or load a Java world region. Get a compact torch layout for the mob-spawn rule you play with.</p>
-        </> : <>
+        </> : utility === "slimes" ? <>
           <div className="eyebrow"><span className="eyebrow-dot" /> JAVA SLIME CHUNK FINDER</div>
           <h1>Find the best area<br /><em>for a slime farm.</em></h1>
           <p>Search a seed for a 16 × 16 chunk area with as many slime chunks as possible.</p>
+        </> : <>
+          <div className="eyebrow"><span className="eyebrow-dot" /> INTERACTIVE CONCEPT DEMO</div>
+          <h1>See which farms<br /><em>are in AFK range.</em></h1>
+          <p>Move players and farm platforms around a sample server map. The list updates as their distance bands overlap.</p>
         </>}
       </section>
 
-      <div className={`workspace ${utility === "slimes" ? "utility-hidden" : ""}`}>
+      <div className={`workspace ${utility !== "torches" ? "utility-hidden" : ""}`}>
         <aside className="sidebar">
           <section className="panel">
             <div className="section-heading"><span className="step">01</span><h2>Choose light rule</h2></div>
@@ -461,8 +469,9 @@ export default function App() {
       </div>
 
       {utility === "slimes" && <SlimeChunkFinder />}
+      {utility === "farm" && <FarmRangeDemo />}
       <footer className="footnote">
-        <span>{utility === "torches" ? "Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model." : "Slime chunk results use the Java Edition seed algorithm. The 16 × 16 display is a 256 × 256 block square, with coordinates aligned to chunk borders."}</span>
+        <span>{utility === "torches" ? "Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model." : utility === "slimes" ? "Slime chunk results use the Java Edition seed algorithm. The 16 × 16 display is a 256 × 256 block square, with coordinates aligned to chunk borders." : "The farm range demo uses same-height horizontal distances and does not model mob caps or farm rates."}</span>
         <nav className="footnote-links" aria-label="Minecraft references and tools">
           {utility === "torches" && <a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a>}
           <a href="https://www.minecraftmaps.com/tools" target="_blank" rel="noreferrer">Minecraft Maps Tools ↗</a>
