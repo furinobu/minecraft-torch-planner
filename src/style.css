@@ -206,14 +206,23 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .redstone-build-card { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(230px, 1.2fr); gap: 12px 20px; align-items: center; margin-top: 12px; padding: 14px; }
 .redstone-build-card h3, .memory-concept h3 { margin: 5px 0 7px; color: #e3e7db; font: 600 12px 'Space Grotesk', sans-serif; }
 .redstone-build-card p, .memory-concept p { margin: 0; color: #969e90; font-size: 10px; line-height: 1.55; }
-.redstone-build-image { overflow: hidden; min-width: 0; margin: 0; border: 1px solid #41493e; border-radius: 4px; background: #151813; }
-.redstone-build-image img { display: block; width: 100%; height: auto; }
-.redstone-build-image figcaption { display: grid; gap: 6px; padding: 9px 10px; color: #9ca292; font-size: 9px; line-height: 1.45; }
-.redstone-build-image small { color: #778071; font-size: 8px; }
-.redstone-build-image a { color: #c7ac7b; text-decoration: none; }
-.redstone-build-image a:hover { color: #f0c376; }
-.gate-composition { display: grid; gap: 5px; padding: 10px; border-left: 2px solid #8e7751; color: #929a8e; font-size: 9px; line-height: 1.5; }
-.gate-composition strong { color: #e3e7db; font: 600 10px 'Space Grotesk', sans-serif; }
+.redstone-3d-viewer { display: grid; align-content: start; gap: 8px; min-width: 0; }
+.redstone-3d-loading { display: grid; place-items: center; min-height: 330px; border: 1px solid #41493e; border-radius: 4px; background: #151913; color: #b4bba8; font-size: 10px; }
+.redstone-3d-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.redstone-3d-toolbar .redstone-kicker { line-height: 1.5; }
+.redstone-3d-frame { position: relative; overflow: hidden; width: 100%; height: 330px; border: 1px solid #41493e; border-radius: 4px; background: #151913; }
+.redstone-3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; outline: none; }
+.redstone-3d-canvas:active { cursor: grabbing; }
+.redstone-3d-canvas.hidden { display: none; }
+.redstone-3d-overlay, .redstone-3d-fallback { position: absolute; inset: 0; display: grid; place-content: center; gap: 9px; padding: 14px; background: #151913; color: #b4bba8; text-align: center; font-size: 10px; }
+.redstone-3d-fallback img { display: block; max-width: 100%; max-height: 260px; margin: auto; object-fit: contain; }
+.redstone-3d-fallback strong { color: #f0c376; font: 600 14px 'DM Mono', monospace; }
+.redstone-3d-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 13px; color: #8d9687; font: 8px 'DM Mono', monospace; }
+.redstone-3d-legend b { color: #d8decf; font-weight: 500; }
+.signal-dot { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border-radius: 50%; background: #ff3828; box-shadow: 0 0 8px #ff3828; }
+.redstone-3d-note { margin: 0; color: #778071; font-size: 8px; line-height: 1.5; }
+.redstone-3d-note a { color: #bda273; text-decoration: none; }
+.redstone-3d-note a:hover { color: #f0c376; }
 .redstone-reference-links { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 13px; }
 .redstone-reference-links a { color: #c7ac7b; font-size: 9px; text-decoration: none; }
 .redstone-reference-links a:hover { color: #f0c376; }
@@ -288,7 +297,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .redstone-lesson-nav a { flex: 1; justify-content: center; }
   .redstone-section { padding: 16px; }
   .gate-lab, .redstone-build-card, .ram-demo, .memory-build-grid, .cpu-details, .cpu-program { grid-template-columns: 1fr; }
-  .circuit-legend { grid-column: auto; }
+  .redstone-3d-frame, .redstone-3d-loading { height: 300px; min-height: 300px; }
   .truth-table-wrap { max-width: none; }
   .ram-readout { min-height: 80px; }
   .cpu-flow, .cpu-datapath { justify-content: flex-start; }
