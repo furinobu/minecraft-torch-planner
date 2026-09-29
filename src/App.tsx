@@ -9,6 +9,7 @@ import SlimeChunkFinder from "./SlimeChunkFinder";
 
 type Rule = "legacy" | "modern";
 type Tool = "floor" | "wall" | "empty";
+type PaintDrag = { pointerId: number; startX: number; startY: number; endX: number; endY: number; value: 0 | 1 | 2 };
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
@@ -76,8 +77,10 @@ export default function App() {
   const [cropHeight, setCropHeight] = useState(16);
   const [worldOrigin, setWorldOrigin] = useState<{ x: number; z: number } | null>(null);
   const [planError, setPlanError] = useState("");
+  const [dragPreview, setDragPreview] = useState<PaintDrag | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
+  const dragRef = useRef<PaintDrag | null>(null);
   const cellsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 1 ? 1 : 0), 0), [terrain]);
   const wallsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 2 ? 1 : 0), 0), [terrain]);
   const radius = rule === "legacy" ? 6 : 13;
@@ -189,28 +192,80 @@ export default function App() {
       context.lineTo(canvas.width, y * cellSize + 0.5);
       context.stroke();
     }
-  }, [terrain, width, height, plan, lightLevels]);
+    if (dragPreview) {
+      const left = Math.min(dragPreview.startX, dragPreview.endX);
+      const right = Math.max(dragPreview.startX, dragPreview.endX);
+      const top = Math.min(dragPreview.startY, dragPreview.endY);
+      const bottom = Math.max(dragPreview.startY, dragPreview.endY);
+      context.fillStyle = dragPreview.value === 1 ? "rgba(153, 190, 125, .30)" : dragPreview.value === 2 ? "rgba(183, 195, 184, .32)" : "rgba(105, 160, 185, .30)";
+      context.fillRect(left * cellSize + 1, top * cellSize + 1, (right - left + 1) * cellSize - 2, (bottom - top + 1) * cellSize - 2);
+      context.strokeStyle = dragPreview.value === 1 ? "#b5d796" : dragPreview.value === 2 ? "#d0d8cf" : "#8ec3d8";
+      context.lineWidth = 2;
+      context.strokeRect(left * cellSize + 1, top * cellSize + 1, (right - left + 1) * cellSize - 2, (bottom - top + 1) * cellSize - 2);
+    }
+  }, [terrain, width, height, plan, lightLevels, dragPreview]);
 
-  const paintAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    const pointerIsMoving = event.type === "pointermove";
-    if (pointerIsMoving && event.buttons === 0) return;
-    if (!pointerIsMoving && event.button !== 0 && event.button !== 2) return;
+  const cellAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = Math.floor(((event.clientX - bounds.left) / bounds.width) * width);
-    const y = Math.floor(((event.clientY - bounds.top) / bounds.height) * height);
-    if (x < 0 || y < 0 || x >= width || y >= height) return;
-    const index = y * width + x;
-    const rightClick = pointerIsMoving ? (event.buttons & 2) !== 0 : event.button === 2;
-    const value = rightClick ? 2 : tool === "wall" ? 2 : tool === "empty" ? 0 : 1;
+    const x = Math.max(0, Math.min(width - 1, Math.floor(((event.clientX - bounds.left) / bounds.width) * width)));
+    const y = Math.max(0, Math.min(height - 1, Math.floor(((event.clientY - bounds.top) / bounds.height) * height)));
+    return { x, y };
+  };
+
+  const applyDragRectangle = (drag: PaintDrag) => {
+    const left = Math.min(drag.startX, drag.endX);
+    const right = Math.max(drag.startX, drag.endX);
+    const top = Math.min(drag.startY, drag.endY);
+    const bottom = Math.max(drag.startY, drag.endY);
     setTerrain((current) => {
-      if (current[index] === value) return current;
-      const next = current.slice();
-      next[index] = value;
-      return next;
+      let next: Uint8Array | null = null;
+      for (let y = top; y <= bottom; y += 1) {
+        for (let x = left; x <= right; x += 1) {
+          const index = y * width + x;
+          if (current[index] === drag.value) continue;
+          if (!next) next = current.slice();
+          next[index] = drag.value;
+        }
+      }
+      return next ?? current;
     });
+  };
+
+  const startDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0 && event.button !== 2) return;
+    const { x, y } = cellAt(event);
+    const value: 0 | 1 | 2 = event.button === 2 ? 2 : tool === "wall" ? 2 : tool === "empty" ? 0 : 1;
+    const drag = { pointerId: event.pointerId, startX: x, startY: y, endX: x, endY: y, value };
+    dragRef.current = drag;
+    setDragPreview(drag);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const continueDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    const { x, y } = cellAt(event);
+    if (drag.endX === x && drag.endY === y) return;
+    const updated = { ...drag, endX: x, endY: y };
+    dragRef.current = updated;
+    setDragPreview(updated);
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
+    if (drag?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragPreview(null);
+    applyDragRectangle(drag);
     cancelPlan();
     setPlan(null);
     setPlanError("");
+  };
+
+  const cancelDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    setDragPreview(null);
   };
 
   const changeDimension = (which: "width" | "height", value: number) => {
@@ -383,10 +438,10 @@ export default function App() {
             </div>
             <span className="map-count">{cellsOn.toLocaleString()} floor · {wallsOn.toLocaleString()} walls</span>
           </div>
-          <p className="map-instructions">Left click to paint the selected tile · right click to place a wall · Empty cells are ignored as spawn targets and let light pass through</p>
+          <p className="map-instructions">Drag to fill a rectangle with the selected tile · right drag to fill walls · Empty cells are ignored as spawn targets and let light pass through</p>
           {plan && <p className="map-instructions">Passable cell numbers show block light from 0 (dark) to 14 (at a torch); walls block light.</p>}
           <div className="map-scroll">
-            <canvas ref={canvasRef} className="map-canvas" style={plan ? { minWidth: `${width * 22}px` } : undefined} onPointerDown={paintAt} onPointerMove={paintAt} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid with light levels after planning" role="application" />
+            <canvas ref={canvasRef} className="map-canvas" style={plan ? { minWidth: `${width * 22}px` } : undefined} onPointerDown={startDrag} onPointerMove={continueDrag} onPointerUp={endDrag} onPointerCancel={cancelDrag} onLostPointerCapture={cancelDrag} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid with light levels after planning" role="application" />
           </div>
           <div className="map-footer">
             <div className="legend"><span className="legend-swatch floor-swatch" /> Walkable floor <span className="legend-swatch wall-swatch" /> Wall blocks light <span className="legend-swatch torch-swatch">✦</span> Suggested torch</div>
