@@ -12,9 +12,9 @@ type Tool = "floor" | "wall" | "empty";
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
-function utilityFromLocation(): "torches" | "slimes" {
+function utilityFromPath(): "torches" | "slimes" {
   const path = window.location.pathname.replace(/\/+$/, "");
-  return path.endsWith("/slime-finder") || window.location.hash === "#/slime-finder" ? "slimes" : "torches";
+  return path.endsWith("/slime-finder") ? "slimes" : "torches";
 }
 
 function resizeGrid(old: Uint8Array, oldWidth: number, oldHeight: number, width: number, height: number) {
@@ -59,7 +59,7 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
-  const [utility, setUtility] = useState<"torches" | "slimes">(utilityFromLocation);
+  const utility = utilityFromPath();
   const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
@@ -98,15 +98,6 @@ export default function App() {
   };
 
   useEffect(() => () => workerRef.current?.terminate(), []);
-
-  useEffect(() => {
-    const syncUtilityFromHash = () => {
-      setUtility(utilityFromLocation());
-      window.scrollTo(0, 0);
-    };
-    window.addEventListener("hashchange", syncUtilityFromHash);
-    return () => window.removeEventListener("hashchange", syncUtilityFromHash);
-  }, []);
 
   useEffect(() => {
     if (utility !== "slimes") return;
