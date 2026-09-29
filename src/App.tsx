@@ -12,8 +12,9 @@ type Tool = "floor" | "wall" | "empty";
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
-function utilityFromHash(): "torches" | "slimes" {
-  return window.location.hash === "#/slime-finder" ? "slimes" : "torches";
+function utilityFromLocation(): "torches" | "slimes" {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return path.endsWith("/slime-finder") || window.location.hash === "#/slime-finder" ? "slimes" : "torches";
 }
 
 function resizeGrid(old: Uint8Array, oldWidth: number, oldHeight: number, width: number, height: number) {
@@ -58,7 +59,7 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
-  const [utility, setUtility] = useState<"torches" | "slimes">(utilityFromHash);
+  const [utility, setUtility] = useState<"torches" | "slimes">(utilityFromLocation);
   const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
@@ -100,7 +101,7 @@ export default function App() {
 
   useEffect(() => {
     const syncUtilityFromHash = () => {
-      setUtility(utilityFromHash());
+      setUtility(utilityFromLocation());
       window.scrollTo(0, 0);
     };
     window.addEventListener("hashchange", syncUtilityFromHash);
@@ -307,12 +308,12 @@ export default function App() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="#/torch-planner" aria-label="Minecraft utilities home">
+        <a className="brand" href={`${import.meta.env.BASE_URL}torch-planner/`} aria-label="Minecraft utilities home">
           <span className="brand-mark">✦</span><span>MINECRAFT<span className="brand-muted">TOOLS</span></span>
         </a>
         <nav className="utility-nav" aria-label="Minecraft utilities">
-          <a className={utility === "torches" ? "active" : ""} href="#/torch-planner" aria-current={utility === "torches" ? "page" : undefined}>Torch planner</a>
-          <a className={utility === "slimes" ? "active" : ""} href="#/slime-finder" aria-current={utility === "slimes" ? "page" : undefined}>Slime finder</a>
+          <a className={utility === "torches" ? "active" : ""} href={`${import.meta.env.BASE_URL}torch-planner/`} aria-current={utility === "torches" ? "page" : undefined}>Torch planner</a>
+          <a className={utility === "slimes" ? "active" : ""} href={`${import.meta.env.BASE_URL}slime-finder/`} aria-current={utility === "slimes" ? "page" : undefined}>Slime finder</a>
         </nav>
       </header>
 
