@@ -11,6 +11,7 @@ export default defineConfig(({ command }) => ({
         torchPlanner: "torch-planner/index.html",
         slimeFinder: "slime-finder/index.html",
         farmOverlap: "farm-overlap/index.html",
+        redstoneLab: "redstone-lab/index.html",
       },
     },
   },
