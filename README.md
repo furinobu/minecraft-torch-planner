@@ -23,7 +23,7 @@ The production build uses the project-site base path `/minecraft-torch-planner/`
 - Ask the planner to place torches. It searches for a minimum set, marks when a time limit prevents it from proving optimality, and shows each passable cell's block light level from 0 to 14.
 - Use **Slime finder** to search a Java seed for the densest 16 × 16 chunk square. Set a block-coordinate center and search radius; the result shows its slime chunks, center, and northwest corner coordinates.
 - Use **Farm demo** to move two sample AFK players and three farm platforms, and see which farms lie in each player's 24–128 block range.
-- Use **Redstone lab** to rotate interactive 3D views of redstone logic gates, explore a small 4 × 8 RAM, and learn the architecture and example program for an 8-bit CPU.
+- Use **Redstone lab** to search a sidebar library of logic gates, five clocks, pulses, memory, and computing circuits. The clock previews animate at Java tick timing; the half adder, button pulse, RS latch, and two-bit counter have interactive controls. Explore a 4 × 8 RAM and learn the architecture and example program for an 8-bit CPU.
 
 Each utility has its own shareable path on GitHub Pages: `/minecraft-torch-planner/torch-planner/`, `/minecraft-torch-planner/slime-finder/`, `/minecraft-torch-planner/farm-overlap/`, and `/minecraft-torch-planner/redstone-lab/`. The root URL still opens the torch planner.
 
@@ -37,6 +37,6 @@ The planner treats the selected area as one flat 2D layer. Wall cells are full-h
 
 The farm range demo uses same-height horizontal positions to visualize the 24–128-block distance band. It does not simulate mob caps or predict farm rates.
 
-The redstone lesson is for Java Edition. It teaches the design of a starter 4 × 8 RAM and an accumulator-style 8-bit CPU; linked references provide tested circuit layouts for individual gates and components.
+The redstone lesson is for Java Edition. Clock periods and tested layouts link to the [Redstonery circuit library](https://redstonery.com/circuits/). The lesson also teaches the design of a starter 4 × 8 RAM and an accumulator-style 8-bit CPU.
 
 The NOT, OR, and AND gate images in the redstone lesson are from [Redstone University](https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/) by fielding, shared under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).

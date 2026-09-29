@@ -55,8 +55,19 @@ const THREE = {
 };
 
 export type RedstoneGate = "NOT" | "OR" | "AND" | "NAND" | "NOR" | "XOR";
+export type RedstoneClock = "repeater-clock" | "torch-clock" | "comparator-clock" | "hopper-clock" | "stoppable-clock";
 
-type Props = { gate: RedstoneGate; inputA: boolean; inputB: boolean; output: boolean; onInputToggle: (input: "A" | "B") => void };
+type Props = {
+  gate: RedstoneGate;
+  inputA: boolean;
+  inputB: boolean;
+  output: boolean;
+  onInputToggle?: (input: "A" | "B") => void;
+  clock?: RedstoneClock;
+  clockPhase?: boolean;
+  clockEnabled?: boolean;
+  clockStopped?: boolean;
+};
 type Three = typeof THREE;
 type Point = [number, number];
 
@@ -228,6 +239,24 @@ function addRepeater(THREE: Three, root: Group, x: number, z: number, powered: b
   box(THREE, root, x + 0.18, 0.21, z, 0.07, 0.1, 0.1, powered ? 0xff6938 : 0x5f382b, { emissive: powered ? 0xc72d18 : 0, intensity: 0.5 });
 }
 
+function addComparator(THREE: Three, root: Group, x: number, z: number, powered: boolean) {
+  box(THREE, root, x, 0.08, z, 0.72, 0.13, 0.48, 0x999b8b);
+  box(THREE, root, x, 0.17, z, 0.42, 0.035, 0.1, powered ? 0xff4936 : 0x5d2420, { outline: false });
+  box(THREE, root, x - 0.2, 0.22, z, 0.07, 0.08, 0.08, powered ? 0xff7143 : 0x754a37);
+  box(THREE, root, x + 0.2, 0.22, z, 0.07, 0.08, 0.08, powered ? 0xff7143 : 0x754a37);
+}
+
+function addHopper(THREE: Three, root: Group, x: number, y: number, z: number) {
+  box(THREE, root, x, y, z, 0.7, 0.16, 0.7, 0x434941);
+  box(THREE, root, x, y - 0.2, z, 0.4, 0.26, 0.4, 0x353b35);
+  box(THREE, root, x, y - 0.38, z, 0.18, 0.12, 0.18, 0x252a25);
+}
+
+function addPiston(THREE: Three, root: Group, x: number, y: number, z: number, extended: boolean) {
+  box(THREE, root, x, y, z, 0.72, 0.34, 0.72, 0x6f795b);
+  box(THREE, root, x, y + 0.22, z, 0.38, extended ? 0.45 : 0.12, 0.38, 0x89916a);
+}
+
 function addModule(THREE: Three, root: Group, x: number, z: number, title: string, powered: boolean) {
   const color = title === "OR" ? 0x63734b : title === "NOT" ? 0x805149 : 0x897347;
   box(THREE, root, x, 0.48, z, 0.94, 0.96, 0.94, color, {
@@ -356,15 +385,76 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   addLamp(THREE, root, 4.45, 0, output);
 }
 
-function updateCircuit(engine: Engine, { gate, inputA, inputB, output }: Props) {
+function buildClockCircuit(THREE: Three, root: Group, props: Props) {
+  const clock = props.clock;
+  if (!clock) return;
+  const running = Boolean(props.clockPhase && (clock === "hopper-clock" || props.clockEnabled !== false) && !props.clockStopped);
+
+  if (clock === "repeater-clock" || clock === "stoppable-clock") {
+    addBlock(THREE, root, -2, 0);
+    addTorch(THREE, root, -1, 0, running, true);
+    addDustPath(THREE, root, [[-0.5, 0], [0, 0], [0.75, 0], [1.5, 0], [2, 0]], 0.06, running);
+    addRepeater(THREE, root, 0.75, 0, running);
+    addDustPath(THREE, root, [[2, 0], [2, 1], [2, 2], [1, 2], [0, 2], [-1, 2], [-2, 2], [-2, 1]], 0.06, !running);
+    addLabel(THREE, root, "4-TICK REPEATER", 0.75, 0.78, -0.46, 1.7);
+    if (clock === "stoppable-clock") {
+      addInput(THREE, root, -2, 2, Boolean(props.clockStopped), "A");
+      addLabel(THREE, root, `STOP ${props.clockStopped ? 1 : 0}`, -2, 1.9, 2, 1.15);
+    }
+    addLabel(THREE, root, `OUT ${running ? 1 : 0}`, 2, 1.35, 0, 1.05);
+    return;
+  }
+
+  if (clock === "torch-clock") {
+    addBlock(THREE, root, -3, -2);
+    addBlock(THREE, root, 1, -2);
+    addBlock(THREE, root, 3, 1);
+    addTorch(THREE, root, -2, -2, running, true);
+    addTorch(THREE, root, 2, -2, !running, true);
+    addTorch(THREE, root, 3, 2, running, true);
+    addDustPath(THREE, root, [[-1.5, -2], [-1, -2], [0, -2], [1, -2]], 0.06, running);
+    addDustPath(THREE, root, [[2.5, -2], [3, -2], [3, -1], [3, 0], [3, 0.5]], 0.06, !running);
+    addDustPath(THREE, root, [[2.5, 2], [2, 2], [1, 2], [0, 2], [-1, 2], [-2, 2], [-3, 2], [-3, 1], [-3, 0], [-3, -1], [-3, -2]], 0.06, running);
+    addLabel(THREE, root, "3 TORCH RING", 0, 1.8, 0, 1.55);
+    addLabel(THREE, root, `OUT ${running ? 1 : 0}`, -2, 1.35, -2, 1.05);
+    return;
+  }
+
+  if (clock === "comparator-clock") {
+    addInput(THREE, root, -2.3, 0, props.clockEnabled !== false, "A");
+    addDustPath(THREE, root, [[-1.8, 0], [-1.2, 0]], 0.06, running);
+    addComparator(THREE, root, -0.8, 0, running);
+    addDustPath(THREE, root, [[-0.35, 0], [0, 0], [0.75, 0], [1.4, 0]], 0.06, running);
+    addRepeater(THREE, root, 0.75, 1.15, running);
+    addDustPath(THREE, root, [[0.75, 0.55], [0.75, 0], [0.75, -0.5], [0, -0.5], [-0.8, -0.5], [-0.8, 0]], 0.06, !running);
+    addLamp(THREE, root, 2, 0, running);
+    addLabel(THREE, root, "SUBTRACT", -0.8, 0.76, -0.42, 1.15);
+    addLabel(THREE, root, "ENABLE", -2.3, 1.8, 0, 1.05);
+    return;
+  }
+
+  addHopper(THREE, root, -0.48, 0.62, 0);
+  addHopper(THREE, root, 0.48, 0.62, 0);
+  addPiston(THREE, root, -1.25, 1.25, 0, running);
+  addPiston(THREE, root, 1.25, 1.25, 0, !running);
+  addComparator(THREE, root, -2.15, 0, running);
+  addComparator(THREE, root, 2.15, 0, !running);
+  box(THREE, root, running ? 0.52 : -0.52, 1.95, 0, 0.46, 0.42, 0.46, 0xb33b32, { emissive: running ? 0x941d19 : 0, intensity: 0.45 });
+  addInput(THREE, root, 0, 2.5, props.clockEnabled === false, "A");
+  addLabel(THREE, root, "4 ITEMS", 0, 2.5, -0.7, 1.05);
+  addLabel(THREE, root, `OUT ${running ? 1 : 0}`, -2.15, 1.05, 0, 1.05);
+}
+
+function updateCircuit(engine: Engine, props: Props) {
   const { THREE, root } = engine;
   clearGroup(THREE, root);
-  if (gate === "NOT") buildNot(THREE, root, inputA, output);
-  else if (gate === "OR") buildOr(THREE, root, inputA, inputB, output);
-  else if (gate === "AND") buildAnd(THREE, root, inputA, inputB, output);
-  else if (gate === "NAND") buildAnd(THREE, root, inputA, inputB, output, true);
-  else if (gate === "NOR") buildOr(THREE, root, inputA, inputB, output, true);
-  else buildComposite(THREE, root, gate, inputA, inputB, output);
+  if (props.clock) buildClockCircuit(THREE, root, props);
+  else if (props.gate === "NOT") buildNot(THREE, root, props.inputA, props.output);
+  else if (props.gate === "OR") buildOr(THREE, root, props.inputA, props.inputB, props.output);
+  else if (props.gate === "AND") buildAnd(THREE, root, props.inputA, props.inputB, props.output);
+  else if (props.gate === "NAND") buildAnd(THREE, root, props.inputA, props.inputB, props.output, true);
+  else if (props.gate === "NOR") buildOr(THREE, root, props.inputA, props.inputB, props.output, true);
+  else buildComposite(THREE, root, props.gate, props.inputA, props.inputB, props.output);
   engine.render();
 }
 
@@ -442,7 +532,7 @@ export default function RedstoneCircuit3D(props: Props) {
           pointerStart = undefined;
           if (moved > 7) return;
           const input = inputAt(event);
-          if (input) onInputToggleRef.current(input);
+          if (input) onInputToggleRef.current?.(input);
         };
         const onPointerMove = (event: PointerEvent) => {
           if (pointerStart) return;
@@ -513,32 +603,41 @@ export default function RedstoneCircuit3D(props: Props) {
 
   useEffect(() => {
     if (ready && engineRef.current) updateCircuit(engineRef.current, props);
-  }, [ready, props.gate, props.inputA, props.inputB, props.output]);
+  }, [ready, props.gate, props.inputA, props.inputB, props.output, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
 
   const fallback = FALLBACKS[props.gate];
+  const circuitName = props.clock ? ({
+    "repeater-clock": "Repeater clock",
+    "torch-clock": "Torch clock",
+    "comparator-clock": "Comparator clock",
+    "hopper-clock": "Two-hopper piston clock",
+    "stoppable-clock": "Stoppable repeater clock",
+  } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate;
   const formula = props.gate === "XOR" ? "(A OR B) AND NOT(A AND B)" : props.gate === "NAND" ? "AND → NOT" : "OR → NOT";
 
   return (
     <div className="redstone-3d-viewer">
       <div className="redstone-3d-toolbar">
-        <span className="redstone-kicker">LIVE WEB 3D · {props.gate}{props.gate === "XOR" || props.gate === "NAND" || props.gate === "NOR" ? ` · ${formula}` : ""}</span>
+        <span className="redstone-kicker">LIVE WEB 3D · {circuitName}{!props.clock && (props.gate === "XOR" || props.gate === "NAND" || props.gate === "NOR") ? ` · ${formula}` : ""}</span>
         <button className="small-button" type="button" onClick={() => engineRef.current?.reset()}>Reset view</button>
       </div>
       <div className="redstone-3d-frame" ref={hostRef}>
-        <canvas ref={canvasRef} className={failed ? "redstone-3d-canvas hidden" : "redstone-3d-canvas"} aria-label={`Interactive 3D ${props.gate} gate circuit`} />
+        <canvas ref={canvasRef} className={failed ? "redstone-3d-canvas hidden" : "redstone-3d-canvas"} aria-label={`Interactive 3D ${circuitName} circuit`} />
         {!ready && !failed && <div className="redstone-3d-overlay">Loading 3D circuit…</div>}
         {failed && <div className="redstone-3d-fallback">
-          {fallback ? <img src={`${import.meta.env.BASE_URL}redstone/${fallback.file}`} alt={fallback.alt} /> : <strong>{formula}</strong>}
+          {fallback ? <img src={`${import.meta.env.BASE_URL}redstone/${fallback.file}`} alt={fallback.alt} /> : <strong>{props.clock ? `${circuitName} preview` : formula}</strong>}
           <span>3D is unavailable in this browser. This is a static circuit reference.</span>
         </div>}
       </div>
       <div className="redstone-3d-legend">
         <span><i className="signal-dot" /> powered redstone dust</span>
-        <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
-        {props.gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
+        {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : <>
+          <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
+          {props.gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
+        </>}
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
       </div>
-      <p className="redstone-3d-note">Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom. The 3D scene teaches signal flow; use the circuit link below for exact tested block placement. Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</p>
+      <p className="redstone-3d-note">{props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} The 3D scene teaches signal flow; use the circuit link below for exact tested block placement. Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</p>
     </div>
   );
 }
