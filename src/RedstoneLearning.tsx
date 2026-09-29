@@ -3,6 +3,11 @@ import { useState } from "react";
 type Gate = "NOT" | "OR" | "AND" | "NAND" | "NOR" | "XOR";
 
 const GATES: Gate[] = ["NOT", "OR", "AND", "NAND", "NOR", "XOR"];
+const GATE_IMAGES: Partial<Record<Gate, { file: string; alt: string; caption: string }>> = {
+  NOT: { file: "not-gate.webp", alt: "Minecraft redstone NOT gate with a lever input, torch inversion, and lamp output", caption: "A torch flips the lever signal: when the input is on, the output lamp turns off." },
+  OR: { file: "or-gate.webp", alt: "Minecraft redstone OR gate with two lever inputs joining into one output", caption: "The two input lines join at the output: either input can turn the output on." },
+  AND: { file: "and-gate.webp", alt: "Minecraft redstone AND gate made from torch inverters and a joined redstone line", caption: "The torch stages combine both inputs so the output turns on only when both are on." },
+};
 
 function evaluate(gate: Gate, a: boolean, b: boolean) {
   switch (gate) {
@@ -75,11 +80,10 @@ export default function RedstoneLearning() {
 
         <div className="redstone-build-card">
           <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate} gate</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Two lever lines meet on one dust path. Either lever can light the output lamp." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "Combine OR with an inverted AND: (A OR B) AND NOT(A AND B). The output is on when exactly one input is on."}</p></div>
-          {gate === "OR" && <pre className="circuit-map" aria-label="OR gate floor layout">{`Floor · X →\nZ ↓   0  1  2  3  4\n  0   A  ·  ·  .  .\n  1   .  .  ·  ·  L\n  2   B  ·  ·  .  .`}</pre>}
-          {gate === "AND" && <div className="circuit-layers"><pre className="circuit-map" aria-label="AND gate ground layer">{`Y=0 · X →\nZ ↓   0  1  2  3  4  5\n  0   A  ·  S  .  .  .\n  1   .  .  S  T  ·  L\n  2   B  ·  S  .  .  .`}</pre><pre className="circuit-map" aria-label="AND gate upper layer">{`Y=1 · X →\nZ ↓   0  1  2  3\n  0   .  .  T  .\n  1   .  .  ·  .\n  2   .  .  T  .`}</pre></div>}
-          {gate === "NOT" && <div className="not-gate-sketch"><span>lever</span><b>→</b><span className="solid-block">solid block</span><b>→</b><span className="torch-output">torch output</span></div>}
-          {gate !== "NOT" && gate !== "OR" && gate !== "AND" && <div className="gate-composition"><strong>Build from the gates above</strong><span>Use repeaters to isolate long shared routes. Check every input row before connecting the gate to a larger circuit.</span></div>}
-          <div className="circuit-legend"><span>A / B = levers</span><span>· = redstone dust</span><span>S = solid block</span><span>T = redstone torch</span><span>L = lamp</span></div>
+          {GATE_IMAGES[gate] ? <figure className="redstone-build-image">
+            <img src={`${import.meta.env.BASE_URL}redstone/${GATE_IMAGES[gate]!.file}`} alt={GATE_IMAGES[gate]!.alt} />
+            <figcaption><span>{GATE_IMAGES[gate]!.caption}</span><small>Image: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a></small></figcaption>
+          </figure> : <div className="gate-composition"><strong>Build from the gates above</strong><span>Use repeaters to isolate long shared routes. Check every input row before connecting the gate to a larger circuit.</span></div>}
           <div className="redstone-reference-links">
             <a href={gate === "AND" ? "https://redstonery.com/circuits/and/" : gate === "OR" ? "https://redstonery.com/circuits/or/" : "https://redstonery.com/circuits/"} target="_blank" rel="noreferrer">Open a redstone circuit layout ↗</a>
           </div>

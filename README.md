@@ -38,3 +38,5 @@ The planner treats the selected area as one flat 2D layer. Wall cells are full-h
 The farm range demo uses same-height horizontal positions to visualize the 24–128-block distance band. It does not simulate mob caps or predict farm rates.
 
 The redstone lesson is for Java Edition. It teaches the design of a starter 4 × 8 RAM and an accumulator-style 8-bit CPU; linked references provide tested circuit layouts for individual gates and components.
+
+The NOT, OR, and AND gate images in the redstone lesson are from [Redstone University](https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/) by fielding, shared under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
