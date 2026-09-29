@@ -6,12 +6,12 @@ import type { ImportedRegion, RegionChoice } from "./worldFolder";
 import type { TorchPlan } from "./torchPlanner";
 
 type Rule = "legacy" | "modern";
-type Tool = "floor" | "wall" | "erase";
+type Tool = "floor" | "wall" | "empty";
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
 function resizeGrid(old: Uint8Array, oldWidth: number, oldHeight: number, width: number, height: number) {
-  const next = new Uint8Array(width * height);
+  const next = new Uint8Array(width * height).fill(2);
   for (let y = 0; y < Math.min(oldHeight, height); y += 1) {
     for (let x = 0; x < Math.min(oldWidth, width); x += 1) {
       next[y * width + x] = old[y * oldWidth + x];
@@ -52,7 +52,7 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
-  const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT));
+  const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
   const [plan, setPlan] = useState<TorchPlan | null>(null);
@@ -162,7 +162,7 @@ export default function App() {
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     const index = y * width + x;
     const rightClick = pointerIsMoving ? (event.buttons & 2) !== 0 : event.button === 2;
-    const value = rightClick || tool === "erase" ? 0 : tool === "wall" ? 2 : 1;
+    const value = rightClick ? 2 : tool === "wall" ? 2 : tool === "empty" ? 0 : 1;
     setTerrain((current) => {
       if (current[index] === value) return current;
       const next = current.slice();
@@ -331,17 +331,17 @@ export default function App() {
             <div className="tool-switch" role="group" aria-label="Map drawing tool">
               <button className={tool === "floor" ? "active" : ""} onClick={() => setTool("floor")}>＋ Floor</button>
               <button className={tool === "wall" ? "active" : ""} onClick={() => setTool("wall")}>▤ Wall</button>
-              <button className={tool === "erase" ? "active" : ""} onClick={() => setTool("erase")}>⌫ Erase</button>
+              <button className={tool === "empty" ? "active" : ""} onClick={() => setTool("empty")}>◌ Empty</button>
             </div>
             <span className="map-count">{cellsOn.toLocaleString()} floor · {wallsOn.toLocaleString()} walls</span>
           </div>
-          <p className="map-instructions">Left click to add the selected tile · right click to delete · use Erase on touchscreens</p>
+          <p className="map-instructions">Left click to paint the selected tile · right click to place a wall · Empty cells are ignored as spawn targets and let light pass through</p>
           <div className="map-scroll">
             <canvas ref={canvasRef} className="map-canvas" onPointerDown={paintAt} onPointerMove={paintAt} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid" role="application" />
           </div>
           <div className="map-footer">
             <div className="legend"><span className="legend-swatch floor-swatch" /> Walkable floor <span className="legend-swatch wall-swatch" /> Wall blocks light <span className="legend-swatch torch-swatch">✦</span> Suggested torch</div>
-            <button className="clear-button" onClick={() => { cancelPlan(); setTerrain(new Uint8Array(width * height)); setPlan(null); setPlanError(""); }}>Clear map</button>
+            <button className="clear-button" onClick={() => { cancelPlan(); setTerrain(new Uint8Array(width * height).fill(2)); setPlan(null); setPlanError(""); }}>Reset to walls</button>
           </div>
 
           <div className="plan-bar">
