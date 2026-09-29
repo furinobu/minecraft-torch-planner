@@ -4,6 +4,7 @@ import { MAX_SEARCH_RADIUS, parseJavaSeed, SLIME_AREA_SIZE } from "./slimeSearch
 import type { SlimeSearchRequest, SlimeSearchResult } from "./slimeSearch";
 
 type SearchReply =
+  | { type: "progress"; percent: number }
   | { type: "result"; result: SlimeSearchResult }
   | { type: "error"; message: string };
 
@@ -14,6 +15,7 @@ export default function SlimeChunkFinder() {
   const [radius, setRadius] = useState("256");
   const [result, setResult] = useState<SlimeSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const workerRef = useRef<Worker | null>(null);
 
@@ -21,6 +23,7 @@ export default function SlimeChunkFinder() {
 
   const findBestArea = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (searching) return;
     workerRef.current?.terminate();
     workerRef.current = null;
     setResult(null);
@@ -53,20 +56,31 @@ export default function SlimeChunkFinder() {
       radius: searchRadius,
     };
     setSearching(true);
+    setProgress(0);
     const worker = new Worker(new URL("./slimeSearch.worker.ts", import.meta.url), { type: "module" });
     workerRef.current = worker;
     worker.onmessage = (message: MessageEvent<SearchReply>) => {
       if (workerRef.current !== worker) return;
+      if (message.data.type === "progress") {
+        setProgress(message.data.percent);
+        return;
+      }
       workerRef.current = null;
       setSearching(false);
-      if (message.data.type === "result") setResult(message.data.result);
-      else setError(message.data.message);
+      if (message.data.type === "result") {
+        setProgress(100);
+        setResult(message.data.result);
+      } else {
+        setProgress(0);
+        setError(message.data.message);
+      }
       worker.terminate();
     };
     worker.onerror = () => {
       if (workerRef.current !== worker) return;
       workerRef.current = null;
       setSearching(false);
+      setProgress(0);
       setError("The slime chunk search stopped unexpectedly. Try a smaller search radius.");
       worker.terminate();
     };
@@ -91,10 +105,16 @@ export default function SlimeChunkFinder() {
             <input type="number" step="1" min="0" max={MAX_SEARCH_RADIUS} value={radius} onChange={(event) => setRadius(event.target.value)} />
           </label>
           <button className="plan-button slime-search-button" type="submit" disabled={searching}>
-            {searching ? <><span className="spinner" /> Searching…</> : <>Find densest area <span>→</span></>}
+            {searching ? <><span className="spinner" /> Searching {progress}%…</> : <>Find densest area <span>→</span></>}
           </button>
         </form>
-        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. At the 512-chunk maximum, it compares 1,025 × 1,025 candidate areas in WebAssembly.</p>
+        {searching && <button className="small-button slime-cancel-button" type="button" onClick={() => {
+          workerRef.current?.terminate();
+          workerRef.current = null;
+          setSearching(false);
+          setProgress(0);
+        }}>Cancel search</button>}
+        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. The 1,048,576-chunk maximum checks about 4.4 trillion candidate areas, so large searches can take a very long time. Progress is shown and the search can be cancelled.</p>
         {error && <p className="plan-error" role="alert">{error}</p>}
       </div>
 

@@ -1,11 +1,17 @@
 const AREA_SIZE: usize = 16;
-const MAX_RADIUS: i32 = 512;
+const MAX_RADIUS: i32 = 1_048_576;
 const WORLD_BORDER_CHUNK_MIN: i32 = -1_875_000;
 const WORLD_BORDER_CHUNK_MAX: i32 = 1_874_999;
 const MASK_48: u64 = (1 << 48) - 1;
 const JAVA_RANDOM_MULTIPLIER: u64 = 0x5deece66d;
 const JAVA_RANDOM_XOR: u64 = 0x5e434e432;
-const RESULT_LEN: usize = 6 + AREA_SIZE * AREA_SIZE;
+const RESULT_HEADER_LEN: usize = 8;
+const RESULT_LEN: usize = RESULT_HEADER_LEN + AREA_SIZE * AREA_SIZE;
+
+#[link(wasm_import_module = "env")]
+unsafe extern "C" {
+    fn report_progress(completed_rows: i32, total_rows: i32);
+}
 
 fn x_seed_term(chunk_x: i32) -> i64 {
     let square_term = chunk_x.wrapping_mul(chunk_x).wrapping_mul(4_987_142) as i64;
@@ -70,10 +76,11 @@ pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, ra
     let mut row_chunks = vec![0_u8; scanned];
     let mut row_sums = vec![0_u8; starts];
     let mut best_count = -1_i32;
-    let mut tied_windows = 0_i32;
+    let mut tied_windows = 0_u64;
     let mut best_distance = i64::MAX;
     let mut best_x = start_chunk_x;
     let mut best_z = start_chunk_z;
+    let progress_step = (scanned / 1_000).max(1);
 
     for z in 0..scanned {
         let z_term = z_seed_term(start_chunk_z + z as i32);
@@ -127,18 +134,25 @@ pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, ra
                 }
             }
         }
+
+        if z % progress_step == 0 || z + 1 == scanned {
+            unsafe { report_progress((z + 1) as i32, scanned_side) };
+        }
     }
 
     let mut output = vec![0_i32; RESULT_LEN].into_boxed_slice();
     output[0] = best_x;
     output[1] = best_z;
     output[2] = best_count;
-    output[3] = tied_windows;
-    output[4] = starts_per_axis * starts_per_axis;
-    output[5] = radius;
+    output[3] = tied_windows as u32 as i32;
+    output[4] = (tied_windows >> 32) as u32 as i32;
+    let tested_windows = (starts_per_axis as u64) * (starts_per_axis as u64);
+    output[5] = tested_windows as u32 as i32;
+    output[6] = (tested_windows >> 32) as u32 as i32;
+    output[7] = radius;
     for z in 0..AREA_SIZE {
         for x in 0..AREA_SIZE {
-            output[6 + z * AREA_SIZE + x] = is_slime_chunk(seed, best_x + x as i32, best_z + z as i32) as i32;
+            output[RESULT_HEADER_LEN + z * AREA_SIZE + x] = is_slime_chunk(seed, best_x + x as i32, best_z + z as i32) as i32;
         }
     }
 

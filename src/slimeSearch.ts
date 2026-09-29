@@ -1,5 +1,5 @@
 export const SLIME_AREA_SIZE = 16;
-export const MAX_SEARCH_RADIUS = 512;
+export const MAX_SEARCH_RADIUS = 1_048_576;
 
 export type SlimeSearchRequest = {
   seed: number;
