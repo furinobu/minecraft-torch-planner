@@ -25,7 +25,7 @@ The production build uses the project-site base path `/minecraft-torch-planner/`
 
 Each utility has its own shareable URL: `#/torch-planner` and `#/slime-finder`. Hash routes keep direct links working on GitHub Pages.
 
-World data and slime chunk searches run in the browser and are not uploaded. The slime finder accepts Java numeric seeds and text seeds. Its optimized search runs in a Rust WebAssembly module inside a browser worker. Building requires Rust with the `wasm32-unknown-unknown` target. The default search radius is 256 chunks; the maximum is 1,048,576 chunks. The maximum radius checks about 4.4 trillion candidate areas, so large searches can take a very long time. Search progress is reported and searches can be cancelled.
+World data and slime chunk searches run in the browser and are not uploaded. The slime finder accepts Java numeric seeds and text seeds. Its search runs in Rust WebAssembly across up to eight browser workers, splitting independent window columns among CPU cores. Building requires Rust with the `wasm32-unknown-unknown` target. The default search radius is 256 chunks; the maximum is 1,048,576 chunks. The maximum radius checks about 4.4 trillion candidate areas, so large searches can take a very long time. Search progress is reported and searches can be cancelled.
 
 Torch planner world-folder import currently reads Java Edition `.mca` region files with standard gzip/zlib compression and heightmaps. It imports the top surface but does not infer walls. Crops are limited to 64 × 64 cells so the exact search stays useful.
 

@@ -47,25 +47,40 @@ fn is_slime_chunk(seed: u64, chunk_x: i32, chunk_z: i32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, radius: i32) -> i32 {
-    if !(0..=MAX_RADIUS).contains(&radius) {
+pub extern "C" fn search(
+    seed: u64,
+    center_chunk_x: i32,
+    center_chunk_z: i32,
+    radius: i32,
+    window_start_x: i32,
+    window_count_x: i32,
+) -> i32 {
+    if !(0..=MAX_RADIUS).contains(&radius) || window_start_x < 0 || window_count_x <= 0 {
         return 0;
     }
 
     let starts_per_axis = radius * 2 + 1;
-    let start_chunk_x = center_chunk_x - 7 - radius;
+    if window_start_x + window_count_x > starts_per_axis {
+        return 0;
+    }
+
+    let full_start_chunk_x = center_chunk_x - 7 - radius;
+    let start_chunk_x = full_start_chunk_x + window_start_x;
     let start_chunk_z = center_chunk_z - 7 - radius;
     let scanned_side = starts_per_axis + AREA_SIZE as i32 - 1;
+    let scanned_width = window_count_x + AREA_SIZE as i32 - 1;
     if start_chunk_x < WORLD_BORDER_CHUNK_MIN
         || start_chunk_z < WORLD_BORDER_CHUNK_MIN
-        || start_chunk_x + starts_per_axis - 1 + AREA_SIZE as i32 - 1 > WORLD_BORDER_CHUNK_MAX
+        || full_start_chunk_x < WORLD_BORDER_CHUNK_MIN
+        || full_start_chunk_x + starts_per_axis - 1 + AREA_SIZE as i32 - 1 > WORLD_BORDER_CHUNK_MAX
         || start_chunk_z + starts_per_axis - 1 + AREA_SIZE as i32 - 1 > WORLD_BORDER_CHUNK_MAX
     {
         return 0;
     }
 
-    let starts = starts_per_axis as usize;
-    let scanned = scanned_side as usize;
+    let starts = window_count_x as usize;
+    let scanned = scanned_width as usize;
+    let scanned_rows = scanned_side as usize;
     let mut x_terms = Vec::with_capacity(scanned);
     for x in 0..scanned {
         x_terms.push(x_seed_term(start_chunk_x + x as i32));
@@ -80,9 +95,9 @@ pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, ra
     let mut best_distance = i64::MAX;
     let mut best_x = start_chunk_x;
     let mut best_z = start_chunk_z;
-    let progress_step = (scanned / 1_000).max(1);
+    let progress_step = (scanned_rows / 1_000).max(1);
 
-    for z in 0..scanned {
+    for z in 0..scanned_rows {
         let z_term = z_seed_term(start_chunk_z + z as i32);
         for x in 0..scanned {
             row_chunks[x] = slime_from_terms(seed, x_terms[x], z_term) as u8;
@@ -135,7 +150,7 @@ pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, ra
             }
         }
 
-        if z % progress_step == 0 || z + 1 == scanned {
+        if z % progress_step == 0 || z + 1 == scanned_rows {
             unsafe { report_progress((z + 1) as i32, scanned_side) };
         }
     }
@@ -146,7 +161,7 @@ pub extern "C" fn search(seed: u64, center_chunk_x: i32, center_chunk_z: i32, ra
     output[2] = best_count;
     output[3] = tied_windows as u32 as i32;
     output[4] = (tied_windows >> 32) as u32 as i32;
-    let tested_windows = (starts_per_axis as u64) * (starts_per_axis as u64);
+    let tested_windows = (window_count_x as u64) * (starts_per_axis as u64);
     output[5] = tested_windows as u32 as i32;
     output[6] = (tested_windows >> 32) as u32 as i32;
     output[7] = radius;

@@ -5,7 +5,14 @@ const worker = self as unknown as DedicatedWorkerGlobalScope;
 
 type SlimeWasmExports = {
   memory: WebAssembly.Memory;
-  search: (seed: bigint, centerChunkX: number, centerChunkZ: number, radius: number) => number;
+  search: (
+    seed: bigint,
+    centerChunkX: number,
+    centerChunkZ: number,
+    radius: number,
+    windowStartX: number,
+    windowCountX: number,
+  ) => number;
 };
 
 const wasmPromise = fetch(wasmUrl)
@@ -30,6 +37,8 @@ worker.onmessage = async (event: MessageEvent<SlimeSearchRequest>) => {
       event.data.centerChunkX,
       event.data.centerChunkZ,
       event.data.radius,
+      event.data.windowStartX,
+      event.data.windowCountX,
     );
     if (pointer === 0) throw new Error("The search area would extend beyond the default Minecraft world border.");
 

@@ -8,6 +8,38 @@ type SearchReply =
   | { type: "result"; result: SlimeSearchResult }
   | { type: "error"; message: string };
 
+function windowDistance(result: SlimeSearchResult, centerChunkX: number, centerChunkZ: number) {
+  const dx = result.startChunkX * 2 + SLIME_AREA_SIZE - 2 - centerChunkX * 2;
+  const dz = result.startChunkZ * 2 + SLIME_AREA_SIZE - 2 - centerChunkZ * 2;
+  return dx * dx + dz * dz;
+}
+
+function combinePartialResults(
+  partials: SlimeSearchResult[],
+  centerChunkX: number,
+  centerChunkZ: number,
+  radius: number,
+): SlimeSearchResult {
+  const bestCount = Math.max(...partials.map((partial) => partial.slimeCount));
+  const leaders = partials.filter((partial) => partial.slimeCount === bestCount);
+  const winner = leaders.reduce((best, candidate) => {
+    const bestDistance = windowDistance(best, centerChunkX, centerChunkZ);
+    const candidateDistance = windowDistance(candidate, centerChunkX, centerChunkZ);
+    if (candidateDistance < bestDistance) return candidate;
+    if (candidateDistance > bestDistance) return best;
+    if (candidate.startChunkZ < best.startChunkZ) return candidate;
+    if (candidate.startChunkZ > best.startChunkZ) return best;
+    return candidate.startChunkX < best.startChunkX ? candidate : best;
+  });
+
+  return {
+    ...winner,
+    tiedWindows: leaders.reduce((total, partial) => total + partial.tiedWindows, 0),
+    testedWindows: (radius * 2 + 1) ** 2,
+    radius,
+  };
+}
+
 export default function SlimeChunkFinder() {
   const [seedText, setSeedText] = useState("");
   const [centerX, setCenterX] = useState("0");
@@ -16,16 +48,25 @@ export default function SlimeChunkFinder() {
   const [result, setResult] = useState<SlimeSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [workerCount, setWorkerCount] = useState(0);
   const [error, setError] = useState("");
-  const workerRef = useRef<Worker | null>(null);
+  const workerRef = useRef<Worker[]>([]);
 
-  useEffect(() => () => workerRef.current?.terminate(), []);
+  useEffect(() => () => workerRef.current.forEach((worker) => worker.terminate()), []);
+
+  const cancelSearch = () => {
+    workerRef.current.forEach((worker) => worker.terminate());
+    workerRef.current = [];
+    setSearching(false);
+    setProgress(0);
+    setWorkerCount(0);
+  };
 
   const findBestArea = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (searching) return;
-    workerRef.current?.terminate();
-    workerRef.current = null;
+    workerRef.current.forEach((worker) => worker.terminate());
+    workerRef.current = [];
     setResult(null);
     setError("");
 
@@ -54,37 +95,65 @@ export default function SlimeChunkFinder() {
       centerChunkX: Math.floor(blockX / 16),
       centerChunkZ: Math.floor(blockZ / 16),
       radius: searchRadius,
+      windowStartX: 0,
+      windowCountX: 1,
     };
+    const startsPerAxis = searchRadius * 2 + 1;
+    const availableWorkers = navigator.hardwareConcurrency || 2;
+    const workersToUse = Math.max(1, Math.min(8, availableWorkers, startsPerAxis));
+    const workers: Worker[] = [];
+    const partialResults: Array<SlimeSearchResult | null> = Array(workersToUse).fill(null);
+    const workerProgress = Array(workersToUse).fill(0) as number[];
+    let remainingWorkers = workersToUse;
+
     setSearching(true);
     setProgress(0);
-    const worker = new Worker(new URL("./slimeSearch.worker.ts", import.meta.url), { type: "module" });
-    workerRef.current = worker;
-    worker.onmessage = (message: MessageEvent<SearchReply>) => {
-      if (workerRef.current !== worker) return;
-      if (message.data.type === "progress") {
-        setProgress(message.data.percent);
-        return;
-      }
-      workerRef.current = null;
-      setSearching(false);
-      if (message.data.type === "result") {
-        setProgress(100);
-        setResult(message.data.result);
-      } else {
-        setProgress(0);
-        setError(message.data.message);
-      }
-      worker.terminate();
-    };
-    worker.onerror = () => {
-      if (workerRef.current !== worker) return;
-      workerRef.current = null;
+    setWorkerCount(workersToUse);
+    workerRef.current = workers;
+
+    const failSearch = (message: string) => {
+      if (workerRef.current !== workers) return;
+      workers.forEach((worker) => worker.terminate());
+      workerRef.current = [];
       setSearching(false);
       setProgress(0);
-      setError("The slime chunk search stopped unexpectedly. Try a smaller search radius.");
-      worker.terminate();
+      setWorkerCount(0);
+      setError(message);
     };
-    worker.postMessage(request);
+
+    for (let workerIndex = 0; workerIndex < workersToUse; workerIndex += 1) {
+      const windowStartX = Math.floor((workerIndex * startsPerAxis) / workersToUse);
+      const windowEndX = Math.floor(((workerIndex + 1) * startsPerAxis) / workersToUse);
+      const worker = new Worker(new URL("./slimeSearch.worker.ts", import.meta.url), { type: "module" });
+      workers.push(worker);
+      worker.onmessage = (message: MessageEvent<SearchReply>) => {
+        if (workerRef.current !== workers) return;
+        if (message.data.type === "progress") {
+          workerProgress[workerIndex] = message.data.percent;
+          setProgress(Math.floor(workerProgress.reduce((total, value) => total + value, 0) / workersToUse));
+          return;
+        }
+        if (message.data.type === "error") {
+          failSearch(message.data.message);
+          return;
+        }
+
+        partialResults[workerIndex] = message.data.result;
+        workerProgress[workerIndex] = 100;
+        worker.terminate();
+        remainingWorkers -= 1;
+        setProgress(Math.floor(workerProgress.reduce((total, value) => total + value, 0) / workersToUse));
+        if (remainingWorkers !== 0) return;
+
+        const completed = partialResults.filter((partial): partial is SlimeSearchResult => partial !== null);
+        setResult(combinePartialResults(completed, request.centerChunkX, request.centerChunkZ, searchRadius));
+        workerRef.current = [];
+        setSearching(false);
+        setProgress(100);
+      };
+      worker.onerror = () => failSearch("The slime chunk search stopped unexpectedly. Try a smaller search radius.");
+      worker.postMessage({ ...request, windowStartX, windowCountX: windowEndX - windowStartX });
+    }
   };
 
   return (
@@ -105,16 +174,11 @@ export default function SlimeChunkFinder() {
             <input type="number" step="1" min="0" max={MAX_SEARCH_RADIUS} value={radius} onChange={(event) => setRadius(event.target.value)} />
           </label>
           <button className="plan-button slime-search-button" type="submit" disabled={searching}>
-            {searching ? <><span className="spinner" /> Searching {progress}%…</> : <>Find densest area <span>→</span></>}
+            {searching ? <><span className="spinner" /> Searching {progress}% · {workerCount} workers…</> : <>Find densest area <span>→</span></>}
           </button>
         </form>
-        {searching && <button className="small-button slime-cancel-button" type="button" onClick={() => {
-          workerRef.current?.terminate();
-          workerRef.current = null;
-          setSearching(false);
-          setProgress(0);
-        }}>Cancel search</button>}
-        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. The 1,048,576-chunk maximum checks about 4.4 trillion candidate areas, so large searches can take a very long time. Progress is shown and the search can be cancelled.</p>
+        {searching && <button className="small-button slime-cancel-button" type="button" onClick={cancelSearch}>Cancel search</button>}
+        <p className="import-help">The radius moves the searched area’s center up to that many chunks from your chosen center. Searches use up to 8 CPU workers. The 1,048,576-chunk maximum checks about 4.4 trillion candidate areas, so large searches can take a very long time. Progress is shown and the search can be cancelled.</p>
         {error && <p className="plan-error" role="alert">{error}</p>}
       </div>
 
@@ -140,7 +204,7 @@ export default function SlimeChunkFinder() {
             })}
           </div>
         </div>
-        <p className="slime-search-stats">Checked {result.testedWindows.toLocaleString()} possible areas within a {result.radius.toLocaleString()}-chunk radius.</p>
+        <p className="slime-search-stats">Checked {result.testedWindows.toLocaleString()} possible areas within a {result.radius.toLocaleString()}-chunk radius using {workerCount} worker{workerCount === 1 ? "" : "s"}.</p>
       </section>}
     </section>
   );

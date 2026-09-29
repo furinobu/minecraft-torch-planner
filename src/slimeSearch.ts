@@ -6,6 +6,8 @@ export type SlimeSearchRequest = {
   centerChunkX: number;
   centerChunkZ: number;
   radius: number;
+  windowStartX: number;
+  windowCountX: number;
 };
 
 export type SlimeSearchResult = {
