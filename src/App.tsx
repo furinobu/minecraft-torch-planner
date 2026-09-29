@@ -461,7 +461,14 @@ export default function App() {
       </div>
 
       {utility === "slimes" && <SlimeChunkFinder />}
-      {utility === "torches" ? <footer className="footnote"><span>Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model.</span><a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a></footer> : <footer className="footnote"><span>Slime chunk results use the Java Edition seed algorithm. The 16 × 16 display is a 256 × 256 block square, with coordinates aligned to chunk borders.</span></footer>}
+      <footer className="footnote">
+        <span>{utility === "torches" ? "Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model." : "Slime chunk results use the Java Edition seed algorithm. The 16 × 16 display is a 256 × 256 block square, with coordinates aligned to chunk borders."}</span>
+        <nav className="footnote-links" aria-label="Minecraft references and tools">
+          {utility === "torches" && <a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a>}
+          <a href="https://www.minecraftmaps.com/tools" target="_blank" rel="noreferrer">Minecraft Maps Tools ↗</a>
+          <a href="https://www.chunkbase.com/apps" target="_blank" rel="noreferrer">Chunkbase Apps ↗</a>
+        </nav>
+      </footer>
     </main>
   );
 }

@@ -135,6 +135,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .footnote { display: flex; justify-content: space-between; gap: 20px; padding: 22px 0; color: #737c70; font-size: 9px; line-height: 1.5; }
 .footnote a { color: #9b9b7e; white-space: nowrap; text-decoration: none; }
 .footnote a:hover { color: var(--accent); }
+.footnote-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; }
 
 @media (max-width: 980px) {
   .shell { padding: 0 28px 24px; }
@@ -163,4 +164,5 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .slime-result-heading { align-items: flex-start; flex-direction: column; }
   .slime-coordinate-summary { grid-template-columns: 1fr; }
   .footnote { flex-direction: column; gap: 8px; }
+  .footnote-links { justify-content: flex-start; }
 }
