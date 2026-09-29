@@ -77,7 +77,13 @@ export default function RedstoneLearning() {
         <div className="redstone-build-card">
           <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate} gate</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Two lever lines meet on one dust path. Either lever can light the output lamp." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "Combine OR with an inverted AND: (A OR B) AND NOT(A AND B). The output is on when exactly one input is on."}</p></div>
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
-            <RedstoneCircuit3D gate={gate} inputA={inputA} inputB={inputB} output={output} />
+            <RedstoneCircuit3D
+              gate={gate}
+              inputA={inputA}
+              inputB={inputB}
+              output={output}
+              onInputToggle={(input) => input === "A" ? setInputA((value) => !value) : setInputB((value) => !value)}
+            />
           </Suspense>
           <div className="redstone-reference-links">
             <a href={gate === "AND" ? "https://redstonery.com/circuits/and/" : gate === "OR" ? "https://redstonery.com/circuits/or/" : "https://redstonery.com/circuits/"} target="_blank" rel="noreferrer">Open a redstone circuit layout ↗</a>

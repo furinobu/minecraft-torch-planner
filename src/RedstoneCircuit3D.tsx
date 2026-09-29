@@ -15,15 +15,17 @@ import {
   MeshStandardMaterial,
   OrthographicCamera as ThreeOrthographicCamera,
   PlaneGeometry,
+  Raycaster,
   Scene as ThreeScene,
   Sprite,
   SpriteMaterial,
   SRGBColorSpace,
   Texture,
+  Vector2,
   WebGLRenderer as ThreeWebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import type { Group, Material, OrthographicCamera, Scene, WebGLRenderer } from "three";
+import type { Group, Material, Object3D, OrthographicCamera, Scene, WebGLRenderer } from "three";
 import type { OrbitControls as OrbitControlsType } from "three/addons/controls/OrbitControls.js";
 
 const THREE = {
@@ -42,17 +44,19 @@ const THREE = {
   MeshStandardMaterial,
   OrthographicCamera: ThreeOrthographicCamera,
   PlaneGeometry,
+  Raycaster,
   Scene: ThreeScene,
   Sprite,
   SpriteMaterial,
   SRGBColorSpace,
   Texture,
+  Vector2,
   WebGLRenderer: ThreeWebGLRenderer,
 };
 
 export type RedstoneGate = "NOT" | "OR" | "AND" | "NAND" | "NOR" | "XOR";
 
-type Props = { gate: RedstoneGate; inputA: boolean; inputB: boolean; output: boolean };
+type Props = { gate: RedstoneGate; inputA: boolean; inputB: boolean; output: boolean; onInputToggle: (input: "A" | "B") => void };
 type Three = typeof THREE;
 type Point = [number, number];
 
@@ -155,18 +159,19 @@ function addBlock(THREE: Three, root: Group, x: number, z: number, powered = fal
 }
 
 function addLever(THREE: Three, root: Group, x: number, z: number, powered: boolean, label: string) {
-  box(THREE, root, x, 1.0, z, 0.38, 0.08, 0.3, 0x62665b);
   const lever = new THREE.Group();
-  lever.position.set(x, 1.04, z);
+  lever.position.set(x, 0, z);
+  lever.userData.input = label;
   root.add(lever);
+  box(THREE, lever, 0, 1.0, 0, 0.38, 0.08, 0.3, 0x62665b);
   const bar = new THREE.Mesh(
     new THREE.CylinderGeometry(0.035, 0.052, 0.34, 6),
     new THREE.MeshStandardMaterial({ color: 0x92988a, roughness: 0.83 }),
   );
-  bar.position.y = 0.17;
+  bar.position.set(0, 1.21, 0);
   bar.rotation.z = powered ? -0.48 : 0.48;
   lever.add(bar);
-  box(THREE, root, x + (powered ? 0.08 : -0.08), 1.3, z, 0.12, 0.12, 0.12, powered ? 0xf1c16b : 0xa8afa0);
+  box(THREE, lever, powered ? 0.08 : -0.08, 1.3, 0, 0.12, 0.12, 0.12, powered ? 0xf1c16b : 0xa8afa0);
   addLabel(THREE, root, `${label} ${powered ? 1 : 0}`, x, 1.65, z, 0.82);
 }
 
@@ -369,11 +374,17 @@ export default function RedstoneCircuit3D(props: Props) {
   const engineRef = useRef<Engine | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const onInputToggleRef = useRef(props.onInputToggle);
+
+  useEffect(() => {
+    onInputToggleRef.current = props.onInputToggle;
+  }, [props.onInputToggle]);
 
   useEffect(() => {
     let disposed = false;
     let observer: ResizeObserver | undefined;
     let engine: Engine | undefined;
+    let cleanupCanvasInteraction: (() => void) | undefined;
 
     const initialize = () => {
       try {
@@ -404,6 +415,50 @@ export default function RedstoneCircuit3D(props: Props) {
         scene.add(root);
         const render = () => renderer.render(scene, camera);
         controls.addEventListener("change", render);
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let pointerStart: { id: number; x: number; y: number } | undefined;
+        const inputAt = (event: PointerEvent): "A" | "B" | null => {
+          const rect = renderer.domElement.getBoundingClientRect();
+          pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+          raycaster.setFromCamera(pointer, camera);
+          for (const intersection of raycaster.intersectObjects(root.children, true)) {
+            let current: Object3D | null = intersection.object;
+            while (current && current !== root) {
+              const input = current.userData.input;
+              if (input === "A" || input === "B") return input;
+              current = current.parent;
+            }
+          }
+          return null;
+        };
+        const onPointerDown = (event: PointerEvent) => {
+          if (event.button !== 0) return;
+          pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        };
+        const onPointerUp = (event: PointerEvent) => {
+          if (!pointerStart || pointerStart.id !== event.pointerId) return;
+          const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
+          pointerStart = undefined;
+          if (moved > 7) return;
+          const input = inputAt(event);
+          if (input) onInputToggleRef.current(input);
+        };
+        const onPointerMove = (event: PointerEvent) => {
+          if (pointerStart) return;
+          renderer.domElement.style.cursor = inputAt(event) ? "pointer" : "grab";
+        };
+        const onPointerCancel = () => { pointerStart = undefined; };
+        renderer.domElement.addEventListener("pointerdown", onPointerDown);
+        renderer.domElement.addEventListener("pointerup", onPointerUp);
+        renderer.domElement.addEventListener("pointermove", onPointerMove);
+        renderer.domElement.addEventListener("pointercancel", onPointerCancel);
+        cleanupCanvasInteraction = () => {
+          renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+          renderer.domElement.removeEventListener("pointerup", onPointerUp);
+          renderer.domElement.removeEventListener("pointermove", onPointerMove);
+          renderer.domElement.removeEventListener("pointercancel", onPointerCancel);
+        };
         const reset = () => {
           camera.position.set(8, 8, 8);
           camera.zoom = 1;
@@ -446,6 +501,7 @@ export default function RedstoneCircuit3D(props: Props) {
     return () => {
       disposed = true;
       observer?.disconnect();
+      cleanupCanvasInteraction?.();
       if (engine) {
         engine.controls.dispose();
         clearGroup(engine.THREE, engine.root);
@@ -482,7 +538,7 @@ export default function RedstoneCircuit3D(props: Props) {
         {props.gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
       </div>
-      <p className="redstone-3d-note">Drag to rotate · scroll to zoom. The 3D scene teaches signal flow; use the circuit link below for exact tested block placement. Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</p>
+      <p className="redstone-3d-note">Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom. The 3D scene teaches signal flow; use the circuit link below for exact tested block placement. Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</p>
     </div>
   );
 }
