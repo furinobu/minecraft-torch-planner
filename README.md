@@ -20,7 +20,7 @@ The production build uses the project-site base path `/minecraft-torch-planner/`
 - Choose the old safe-light threshold (8+) or the modern threshold (1+).
 - Drawn maps start as walls. Left-click paints the selected Floor, Wall, or Empty tile; right-click always places a wall. Empty cells are ignored as spawn targets and let light pass through.
 - Load a Java world folder and select a crop from one of its region files, then mark walls with the Wall brush.
-- Ask the planner to place torches. It searches for a minimum set and marks when a time limit prevents it from proving optimality.
+- Ask the planner to place torches. It searches for a minimum set, marks when a time limit prevents it from proving optimality, and shows each passable cell's block light level from 0 to 14.
 
 World data is read in the browser and is not uploaded. Folder import currently reads Java Edition `.mca` region files with standard gzip/zlib compression and heightmaps. It imports the top surface but does not infer walls. Crops are limited to 64 × 64 cells so the exact search stays useful.
 

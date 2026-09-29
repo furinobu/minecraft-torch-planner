@@ -4,6 +4,44 @@ export type TorchPlan = {
   examinedNodes: number;
 };
 
+export function getLightLevels(width: number, height: number, terrain: Uint8Array, positions: number[]) {
+  const cellCount = width * height;
+  const distances = new Uint8Array(cellCount).fill(255);
+  const queue = new Int32Array(cellCount);
+  let head = 0;
+  let tail = 0;
+
+  for (const position of positions) {
+    if (position < 0 || position >= cellCount || terrain[position] === 2 || distances[position] === 0) continue;
+    distances[position] = 0;
+    queue[tail++] = position;
+  }
+
+  while (head < tail) {
+    const current = queue[head++];
+    const distance = distances[current];
+    if (distance >= 13) continue;
+
+    const x = current % width;
+    const nextDistance = distance + 1;
+    const addNeighbor = (next: number) => {
+      if (terrain[next] === 2 || distances[next] !== 255) return;
+      distances[next] = nextDistance;
+      queue[tail++] = next;
+    };
+    if (x > 0) addNeighbor(current - 1);
+    if (x + 1 < width) addNeighbor(current + 1);
+    if (current >= width) addNeighbor(current - width);
+    if (current + width < cellCount) addNeighbor(current + width);
+  }
+
+  const levels = new Uint8Array(cellCount);
+  for (let i = 0; i < cellCount; i += 1) {
+    if (distances[i] <= 13) levels[i] = 14 - distances[i];
+  }
+  return levels;
+}
+
 type Candidate = {
   cell: number;
   coverage: bigint;

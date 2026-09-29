@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { InputHTMLAttributes } from "react";
 import { findRegionFiles, readRegion } from "./worldFolder";
 import type { ImportedRegion, RegionChoice } from "./worldFolder";
+import { getLightLevels } from "./torchPlanner";
 import type { TorchPlan } from "./torchPlanner";
 
 type Rule = "legacy" | "modern";
@@ -73,6 +74,10 @@ export default function App() {
   const cellsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 1 ? 1 : 0), 0), [terrain]);
   const wallsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 2 ? 1 : 0), 0), [terrain]);
   const radius = rule === "legacy" ? 6 : 13;
+  const lightLevels = useMemo(
+    () => plan ? getLightLevels(width, height, terrain, plan.positions) : null,
+    [plan, width, height, terrain],
+  );
   const torchCoordinates = plan?.positions.map((position) => {
     const x = position % width;
     const z = Math.floor(position / width);
@@ -116,6 +121,26 @@ export default function App() {
         context.stroke();
       }
     }
+    if (lightLevels) {
+      for (let index = 0; index < lightLevels.length; index += 1) {
+        if (terrain[index] === 2) continue;
+        const x = index % width;
+        const y = Math.floor(index / width);
+        const level = lightLevels[index];
+        if (level > 0) {
+          context.fillStyle = `rgba(244, 170, 79, ${0.08 + (level / 14) * 0.22})`;
+          context.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+        }
+        context.font = "bold 11px monospace";
+        context.textAlign = "center";
+        context.textBaseline = "bottom";
+        context.lineWidth = 3;
+        context.strokeStyle = "rgba(18, 22, 18, .9)";
+        context.strokeText(String(level), (x + 0.5) * cellSize, (y + 1) * cellSize - 2);
+        context.fillStyle = level === 0 ? "#aab0a3" : "#fff0cf";
+        context.fillText(String(level), (x + 0.5) * cellSize, (y + 1) * cellSize - 2);
+      }
+    }
     if (plan) {
       for (const position of plan.positions) {
         const x = position % width;
@@ -128,7 +153,7 @@ export default function App() {
         context.lineWidth = 2;
         context.beginPath();
         context.moveTo((x + 0.5) * cellSize, (y + 0.21) * cellSize);
-        context.lineTo((x + 0.5) * cellSize, (y + 0.78) * cellSize);
+        context.lineTo((x + 0.5) * cellSize, (y + 0.56) * cellSize);
         context.stroke();
         context.fillStyle = "#ffca70";
         context.beginPath();
@@ -150,7 +175,7 @@ export default function App() {
       context.lineTo(canvas.width, y * cellSize + 0.5);
       context.stroke();
     }
-  }, [terrain, width, height, plan]);
+  }, [terrain, width, height, plan, lightLevels]);
 
   const paintAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const pointerIsMoving = event.type === "pointermove";
@@ -336,8 +361,9 @@ export default function App() {
             <span className="map-count">{cellsOn.toLocaleString()} floor · {wallsOn.toLocaleString()} walls</span>
           </div>
           <p className="map-instructions">Left click to paint the selected tile · right click to place a wall · Empty cells are ignored as spawn targets and let light pass through</p>
+          {plan && <p className="map-instructions">Passable cell numbers show block light from 0 (dark) to 14 (at a torch); walls block light.</p>}
           <div className="map-scroll">
-            <canvas ref={canvasRef} className="map-canvas" onPointerDown={paintAt} onPointerMove={paintAt} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid" role="application" />
+            <canvas ref={canvasRef} className="map-canvas" style={plan ? { minWidth: `${width * 22}px` } : undefined} onPointerDown={paintAt} onPointerMove={paintAt} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid with light levels after planning" role="application" />
           </div>
           <div className="map-footer">
             <div className="legend"><span className="legend-swatch floor-swatch" /> Walkable floor <span className="legend-swatch wall-swatch" /> Wall blocks light <span className="legend-swatch torch-swatch">✦</span> Suggested torch</div>
