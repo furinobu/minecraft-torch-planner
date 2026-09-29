@@ -23,6 +23,10 @@ button { color: inherit; }
 .brand-mark { color: var(--accent); font-size: 20px; }
 .brand-muted { color: #858b7f; font-weight: 500; }
 .topbar-note { color: #7e857b; font: 11px 'DM Mono', monospace; letter-spacing: .02em; }
+.utility-nav { display: flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid #333b32; border-radius: 5px; background: #181d18; }
+.utility-nav button { border: 0; border-radius: 3px; padding: 6px 9px; background: transparent; color: #8e9688; font-size: 10px; cursor: pointer; }
+.utility-nav button.active { color: #f0d49f; background: #3c3425; }
+.utility-hidden { display: none !important; }
 .hero { max-width: 800px; padding: 54px 0 44px; }
 .eyebrow { color: var(--green); font: 10px 'DM Mono', monospace; letter-spacing: .13em; display: flex; align-items: center; gap: 9px; }
 .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: #a9bf78; box-shadow: 0 0 10px #a9bf7866; }
@@ -103,6 +107,26 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .coordinates strong { color: #bfc5b5; font: 10px 'DM Mono', monospace; }
 .coordinates p { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
 .coordinates span { color: #f1cc8f; background: #302a20; border-radius: 3px; padding: 4px 6px; font: 9px 'DM Mono', monospace; }
+.slime-finder { display: grid; gap: 14px; }
+.slime-intro, .slime-result { min-width: 0; padding: 20px; }
+.slime-intro > p { color: #9da397; font-size: 12px; line-height: 1.5; margin: 12px 0 0; }
+.slime-form { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(190px, 1fr) minmax(150px, .7fr) auto; gap: 12px; align-items: end; margin-top: 16px; }
+.slime-form .field-label { min-width: 0; }
+.slime-form .field-label input { min-height: 34px; }
+.center-fields { min-width: 0; margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.center-fields legend { color: #899182; padding: 0 0 5px; font: 9px 'DM Mono', monospace; }
+.center-fields .field-label { gap: 4px; }
+.slime-search-button { min-height: 34px; }
+.slime-result-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.slime-result-heading h2 { margin: 7px 0 0; color: #f0c376; font: 600 22px 'Space Grotesk', sans-serif; }
+.slime-result-heading h2 span { color: #a4aa9a; font: 400 11px 'DM Mono', monospace; }
+.slime-coordinates { color: #aab09f; font-size: 11px; line-height: 1.5; margin: 14px 0 10px; }
+.slime-coordinates strong { color: #e0e3d8; }
+.slime-map-scroll { max-width: 100%; overflow: auto; border: 1px solid #41493e; border-radius: 5px; background: #1b201a; }
+.slime-map { display: grid; grid-template-columns: repeat(16, 28px); gap: 2px; width: max-content; padding: 8px; }
+.slime-cell { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #444d43; border-radius: 2px; background: #2b312a; color: #fff0c8; font-size: 12px; }
+.slime-cell.is-slime { border-color: #a8ba83; background: #667b51; box-shadow: inset 0 0 0 1px #a8ba8350; }
+.slime-search-stats { color: #727b6f; font: 9px 'DM Mono', monospace; margin: 10px 0 0; }
 .spinner { display: inline-block; width: 11px; height: 11px; vertical-align: -2px; border: 2px solid #8e7147; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .footnote { display: flex; justify-content: space-between; gap: 20px; padding: 22px 0; color: #737c70; font-size: 9px; line-height: 1.5; }
@@ -130,5 +154,9 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .map-canvas { min-width: 320px; }
   .map-header { flex-wrap: wrap; }
   .canvas-toolbar { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .slime-form { grid-template-columns: 1fr 1fr; }
+  .seed-field, .center-fields, .slime-search-button { grid-column: 1 / -1; }
+  .radius-field { grid-column: 1 / -1; }
+  .slime-result-heading { align-items: flex-start; flex-direction: column; }
   .footnote { flex-direction: column; gap: 8px; }
 }

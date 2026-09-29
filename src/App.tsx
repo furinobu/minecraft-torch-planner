@@ -5,6 +5,7 @@ import { findRegionFiles, readRegion } from "./worldFolder";
 import type { ImportedRegion, RegionChoice } from "./worldFolder";
 import { getLightLevels } from "./torchPlanner";
 import type { TorchPlan } from "./torchPlanner";
+import SlimeChunkFinder from "./SlimeChunkFinder";
 
 type Rule = "legacy" | "modern";
 type Tool = "floor" | "wall" | "empty";
@@ -53,6 +54,7 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
+  const [utility, setUtility] = useState<"torches" | "slimes">("torches");
   const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
@@ -285,19 +287,28 @@ export default function App() {
   return (
     <main className="shell">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="Torch Planner home">
-          <span className="brand-mark">✦</span><span>TORCH<span className="brand-muted">PLAN</span></span>
+        <a className="brand" href="#top" aria-label="Minecraft utilities home">
+          <span className="brand-mark">✦</span><span>MINECRAFT<span className="brand-muted">TOOLS</span></span>
         </a>
-        <span className="topbar-note">A small tool for safer builds</span>
+        <nav className="utility-nav" aria-label="Minecraft utilities">
+          <button className={utility === "torches" ? "active" : ""} onClick={() => setUtility("torches")}>Torch planner</button>
+          <button className={utility === "slimes" ? "active" : ""} onClick={() => { cancelPlan(); setUtility("slimes"); }}>Slime finder</button>
+        </nav>
       </header>
 
       <section className="hero" id="top">
-        <div className="eyebrow"><span className="eyebrow-dot" /> MINECRAFT LIGHTING PLANNER</div>
-        <h1>Light the whole area.<br /><em>Carry fewer torches.</em></h1>
-        <p>Draw a build area or load a Java world region. Get a compact torch layout for the mob-spawn rule you play with.</p>
+        {utility === "torches" ? <>
+          <div className="eyebrow"><span className="eyebrow-dot" /> MINECRAFT LIGHTING PLANNER</div>
+          <h1>Light the whole area.<br /><em>Carry fewer torches.</em></h1>
+          <p>Draw a build area or load a Java world region. Get a compact torch layout for the mob-spawn rule you play with.</p>
+        </> : <>
+          <div className="eyebrow"><span className="eyebrow-dot" /> JAVA SLIME CHUNK FINDER</div>
+          <h1>Find the best area<br /><em>for a slime farm.</em></h1>
+          <p>Search a seed for a 16 × 16 chunk area with as many slime chunks as possible.</p>
+        </>}
       </section>
 
-      <div className="workspace">
+      <div className={`workspace ${utility === "slimes" ? "utility-hidden" : ""}`}>
         <aside className="sidebar">
           <section className="panel">
             <div className="section-heading"><span className="step">01</span><h2>Choose light rule</h2></div>
@@ -382,7 +393,8 @@ export default function App() {
         </section>
       </div>
 
-      <footer className="footnote"><span>Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model.</span><a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a></footer>
+      {utility === "slimes" && <SlimeChunkFinder />}
+      {utility === "torches" ? <footer className="footnote"><span>Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model.</span><a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a></footer> : <footer className="footnote"><span>Slime chunk results use the Java Edition seed algorithm. The 16 × 16 display is a 256 × 256 block square, with coordinates aligned to chunk borders.</span></footer>}
     </main>
   );
 }
