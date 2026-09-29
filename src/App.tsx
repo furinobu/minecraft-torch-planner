@@ -6,7 +6,7 @@ import type { ImportedRegion, RegionChoice } from "./worldFolder";
 import type { TorchPlan } from "./torchPlanner";
 
 type Rule = "legacy" | "modern";
-type Tool = "paint" | "erase";
+type Tool = "floor" | "wall" | "erase";
 const INITIAL_WIDTH = 22;
 const INITIAL_HEIGHT = 16;
 
@@ -52,9 +52,9 @@ function RegionPreview({ region, cropX, cropZ, cropWidth, cropHeight }: {
 export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
-  const [floor, setFloor] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT));
+  const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT));
   const [rule, setRule] = useState<Rule>("modern");
-  const [tool, setTool] = useState<Tool>("paint");
+  const [tool, setTool] = useState<Tool>("floor");
   const [plan, setPlan] = useState<TorchPlan | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [regions, setRegions] = useState<RegionChoice[]>([]);
@@ -70,7 +70,8 @@ export default function App() {
   const [planError, setPlanError] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workerRef = useRef<Worker | null>(null);
-  const cellsOn = useMemo(() => floor.reduce((count, value) => count + (value ? 1 : 0), 0), [floor]);
+  const cellsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 1 ? 1 : 0), 0), [terrain]);
+  const wallsOn = useMemo(() => terrain.reduce((count, value) => count + (value === 2 ? 1 : 0), 0), [terrain]);
   const radius = rule === "legacy" ? 6 : 13;
   const torchCoordinates = plan?.positions.map((position) => {
     const x = position % width;
@@ -96,12 +97,23 @@ export default function App() {
     context.fillStyle = "#242a24";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let index = 0; index < floor.length; index += 1) {
+    for (let index = 0; index < terrain.length; index += 1) {
       const x = index % width;
       const y = Math.floor(index / width);
-      if (floor[index]) {
+      if (terrain[index] === 1) {
         context.fillStyle = "#687c5d";
         context.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+      } else if (terrain[index] === 2) {
+        context.fillStyle = "#505a57";
+        context.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+        context.strokeStyle = "#849087";
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(x * cellSize + 5, y * cellSize + 10);
+        context.lineTo((x + 1) * cellSize - 5, y * cellSize + 10);
+        context.moveTo(x * cellSize + 5, y * cellSize + 19);
+        context.lineTo((x + 1) * cellSize - 5, y * cellSize + 19);
+        context.stroke();
       }
     }
     if (plan) {
@@ -138,17 +150,20 @@ export default function App() {
       context.lineTo(canvas.width, y * cellSize + 0.5);
       context.stroke();
     }
-  }, [floor, width, height, plan]);
+  }, [terrain, width, height, plan]);
 
   const paintAt = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (event.type === "pointermove" && event.buttons === 0) return;
+    const pointerIsMoving = event.type === "pointermove";
+    if (pointerIsMoving && event.buttons === 0) return;
+    if (!pointerIsMoving && event.button !== 0 && event.button !== 2) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.floor(((event.clientX - bounds.left) / bounds.width) * width);
     const y = Math.floor(((event.clientY - bounds.top) / bounds.height) * height);
     if (x < 0 || y < 0 || x >= width || y >= height) return;
     const index = y * width + x;
-    const value = tool === "paint" ? 1 : 0;
-    setFloor((current) => {
+    const rightClick = pointerIsMoving ? (event.buttons & 2) !== 0 : event.button === 2;
+    const value = rightClick || tool === "erase" ? 0 : tool === "wall" ? 2 : 1;
+    setTerrain((current) => {
       if (current[index] === value) return current;
       const next = current.slice();
       next[index] = value;
@@ -162,7 +177,7 @@ export default function App() {
   const changeDimension = (which: "width" | "height", value: number) => {
     const nextWidth = which === "width" ? value : width;
     const nextHeight = which === "height" ? value : height;
-    setFloor((current) => resizeGrid(current, width, height, nextWidth, nextHeight));
+    setTerrain((current) => resizeGrid(current, width, height, nextWidth, nextHeight));
     setWidth(nextWidth);
     setHeight(nextHeight);
     cancelPlan();
@@ -191,7 +206,7 @@ export default function App() {
       setPlanError("The torch planner stopped unexpectedly. Try a smaller map.");
       worker.terminate();
     };
-    worker.postMessage({ width, height, floor, radius });
+    worker.postMessage({ width, height, terrain, radius });
   };
 
   const handleFolder = (fileList: FileList | null) => {
@@ -234,7 +249,7 @@ export default function App() {
     }
     setWidth(nextWidth);
     setHeight(nextHeight);
-    setFloor(next);
+    setTerrain(next);
     const region = regions[selectedRegion];
     if (region) setWorldOrigin({ x: region.x * 512 + cropX, z: region.z * 512 + cropZ });
     cancelPlan();
@@ -269,7 +284,7 @@ export default function App() {
                 <span className="rule-name">New rule</span><span className="rule-level">Light 1+</span><span className="rule-detail">Most hostile mobs need block light 0 to spawn.</span>
               </button>
             </div>
-            <div className="assumption"><span className="info-mark">i</span><span>Assumes a torch gives level 14 and light spreads across a flat, unobstructed grid.</span></div>
+            <div className="assumption"><span className="info-mark">i</span><span>Assumes level-14 torches and full-height wall cells that block light in this flat grid.</span></div>
           </section>
 
           <section className="panel import-panel">
@@ -299,7 +314,7 @@ export default function App() {
               </div>
               <button className="small-button apply-crop" onClick={applyCrop}>Use this area →</button>
             </div>}
-            <p className="import-help">Select a region and crop up to 64 × 64 blocks. The map uses its top surface and ignores height.</p>
+            <p className="import-help">Select a region and crop up to 64 × 64 blocks. Imported top surfaces don’t infer walls; mark them with the Wall brush.</p>
           </section>
         </aside>
 
@@ -314,17 +329,19 @@ export default function App() {
           </div>
           <div className="canvas-toolbar">
             <div className="tool-switch" role="group" aria-label="Map drawing tool">
-              <button className={tool === "paint" ? "active" : ""} onClick={() => setTool("paint")}>＋ Paint floor</button>
+              <button className={tool === "floor" ? "active" : ""} onClick={() => setTool("floor")}>＋ Floor</button>
+              <button className={tool === "wall" ? "active" : ""} onClick={() => setTool("wall")}>▤ Wall</button>
               <button className={tool === "erase" ? "active" : ""} onClick={() => setTool("erase")}>⌫ Erase</button>
             </div>
-            <span className="map-count">{cellsOn.toLocaleString()} floor blocks</span>
+            <span className="map-count">{cellsOn.toLocaleString()} floor · {wallsOn.toLocaleString()} walls</span>
           </div>
+          <p className="map-instructions">Left click to add the selected tile · right click to delete · use Erase on touchscreens</p>
           <div className="map-scroll">
             <canvas ref={canvasRef} className="map-canvas" onPointerDown={paintAt} onPointerMove={paintAt} onContextMenu={(event) => event.preventDefault()} aria-label="Paintable top-down map grid" role="application" />
           </div>
           <div className="map-footer">
-            <div className="legend"><span className="legend-swatch floor-swatch" /> Walkable floor <span className="legend-swatch torch-swatch">✦</span> Suggested torch</div>
-            <button className="clear-button" onClick={() => { setFloor(new Uint8Array(width * height)); setPlan(null); }}>Clear map</button>
+            <div className="legend"><span className="legend-swatch floor-swatch" /> Walkable floor <span className="legend-swatch wall-swatch" /> Wall blocks light <span className="legend-swatch torch-swatch">✦</span> Suggested torch</div>
+            <button className="clear-button" onClick={() => { cancelPlan(); setTerrain(new Uint8Array(width * height)); setPlan(null); setPlanError(""); }}>Clear map</button>
           </div>
 
           <div className="plan-bar">
@@ -339,7 +356,7 @@ export default function App() {
         </section>
       </div>
 
-      <footer className="footnote"><span>Planning is based on block light only. Spawn conditions such as biome, floor block, sky light, and nearby players are outside this 2D model.</span><a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a></footer>
+      <footer className="footnote"><span>Walls are treated as full-height opaque cells in a flat 2D layer. Other spawn conditions such as biome, floor block, sky light, and nearby players are outside this model.</span><a href="https://feedback.minecraft.net/hc/en-us/articles/4415128577293-Minecraft-Java-Edition-1-18" target="_blank" rel="noreferrer">1.18 light rule ↗</a></footer>
     </main>
   );
 }

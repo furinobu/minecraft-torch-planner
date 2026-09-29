@@ -77,13 +77,15 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .tool-switch { display: inline-flex; padding: 3px; border-radius: 5px; background: #181d18; border: 1px solid #333b32; }
 .tool-switch button { border: 0; border-radius: 3px; background: transparent; color: #8e9688; padding: 6px 9px; font-size: 10px; cursor: pointer; }
 .tool-switch button.active { color: #f0d49f; background: #3c3425; }
-.map-count { color: #899183; font: 10px 'DM Mono', monospace; }
+.map-count { color: #899183; font: 10px 'DM Mono', monospace; white-space: nowrap; }
+.map-instructions { color: #7e8878; font-size: 9px; margin: -3px 0 9px; }
 .map-scroll { overflow: auto; max-height: 590px; border: 1px solid #41493e; background: #202620; border-radius: 5px; touch-action: none; }
 .map-canvas { width: 100%; height: auto; min-width: 360px; display: block; cursor: crosshair; touch-action: none; }
 .map-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 12px; }
 .legend { display: flex; align-items: center; gap: 7px; color: #899183; font-size: 9px; }
 .legend-swatch { display: inline-grid; place-items: center; width: 10px; height: 10px; border-radius: 2px; }
 .floor-swatch { background: #687c5d; }
+.wall-swatch { height: 8px; background: #505a57; border: 1px solid #849087; }
 .torch-swatch { color: #ffcf7a; font-size: 12px; margin-left: 6px; }
 .clear-button { color: #92998c; background: transparent; border: 0; padding: 3px; font-size: 10px; cursor: pointer; }
 .clear-button:hover { color: #efc376; }
@@ -127,5 +129,6 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .map-panel { grid-row: 1; }
   .map-canvas { min-width: 320px; }
   .map-header { flex-wrap: wrap; }
+  .canvas-toolbar { align-items: flex-start; flex-direction: column; gap: 8px; }
   .footnote { flex-direction: column; gap: 8px; }
 }

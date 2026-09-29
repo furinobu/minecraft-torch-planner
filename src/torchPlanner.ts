@@ -21,13 +21,13 @@ const bitCount = (bits: bigint): number => {
 export function planTorches(
   width: number,
   height: number,
-  floor: Uint8Array,
+  terrain: Uint8Array,
   radius: number,
   timeLimitMs = 2500,
 ): TorchPlan {
   const cells: number[] = [];
   for (let i = 0; i < width * height; i += 1) {
-    if (floor[i]) cells.push(i);
+    if (terrain[i] === 1) cells.push(i);
   }
   if (cells.length === 0) return { positions: [], optimal: true, examinedNodes: 0 };
 
@@ -36,23 +36,39 @@ export function planTorches(
     cellToIndex[cell] = i;
   });
   const byCell: number[][] = cells.map(() => []);
+  const visited = new Uint32Array(width * height);
+  const distances = new Uint8Array(width * height);
+  const queue = new Int32Array(width * height);
   const candidates: Candidate[] = cells.map((cell, candidateIndex) => {
-    const x = cell % width;
-    const y = Math.floor(cell / width);
     let coverage = 0n;
-    for (let dy = -radius; dy <= radius; dy += 1) {
-      const reach = radius - Math.abs(dy);
-      const row = y + dy;
-      if (row < 0 || row >= height) continue;
-      for (let dx = -reach; dx <= reach; dx += 1) {
-        const col = x + dx;
-        if (col < 0 || col >= width) continue;
-        const cellIndex = cellToIndex[row * width + col];
-        if (cellIndex !== -1) {
-          coverage |= 1n << BigInt(cellIndex);
-          byCell[cellIndex].push(candidateIndex);
-        }
+    const visitId = candidateIndex + 1;
+    let head = 0;
+    let tail = 1;
+    queue[0] = cell;
+    visited[cell] = visitId;
+    distances[cell] = 0;
+
+    while (head < tail) {
+      const current = queue[head++];
+      const distance = distances[current];
+      const cellIndex = cellToIndex[current];
+      if (cellIndex !== -1) {
+        coverage |= 1n << BigInt(cellIndex);
+        byCell[cellIndex].push(candidateIndex);
       }
+      if (distance >= radius) continue;
+
+      const x = current % width;
+      const addNeighbor = (next: number) => {
+        if (terrain[next] === 2 || visited[next] === visitId) return;
+        visited[next] = visitId;
+        distances[next] = distance + 1;
+        queue[tail++] = next;
+      };
+      if (x > 0) addNeighbor(current - 1);
+      if (x + 1 < width) addNeighbor(current + 1);
+      if (current >= width) addNeighbor(current - width);
+      if (current + width < width * height) addNeighbor(current + width);
     }
     return { cell, coverage };
   });
