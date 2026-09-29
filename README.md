@@ -21,7 +21,7 @@ The production build uses the project-site base path `/minecraft-torch-planner/`
 - Drawn maps start as walls. Left-click paints the selected Floor, Wall, or Empty tile; right-click always places a wall. Empty cells are ignored as spawn targets and let light pass through.
 - Load a Java world folder and select a crop from one of its region files, then mark walls with the Wall brush.
 - Ask the planner to place torches. It searches for a minimum set, marks when a time limit prevents it from proving optimality, and shows each passable cell's block light level from 0 to 14.
-- Use **Slime finder** to search a Java seed for the densest 16 × 16 chunk square. Set a block-coordinate center and search radius; the result shows its slime chunks and northwest block coordinates.
+- Use **Slime finder** to search a Java seed for the densest 16 × 16 chunk square. Set a block-coordinate center and search radius; the result shows its slime chunks, center, and northwest corner coordinates.
 
 World data and slime chunk searches run in the browser and are not uploaded. The slime finder accepts Java numeric seeds and text seeds. The default search radius is 256 chunks and the maximum is 2048 chunks.
 

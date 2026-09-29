@@ -103,7 +103,10 @@ export default function SlimeChunkFinder() {
           <div><div className="eyebrow"><span className="eyebrow-dot" /> BEST AREA FOUND</div><h2>{result.slimeCount} slime chunks <span>in 256 chunks</span></h2></div>
           <span className="map-count">{result.tiedWindows.toLocaleString()} area{result.tiedWindows === 1 ? "" : "s"} tied</span>
         </div>
-        <p className="slime-coordinates"><strong>Area origin:</strong> chunk {result.startChunkX}, {result.startChunkZ} · block {(result.startChunkX * 16).toLocaleString()}, {(result.startChunkZ * 16).toLocaleString()} (northwest corner)</p>
+        <div className="slime-coordinate-summary">
+          <div><span>Area center (block X, Z)</span><strong>{((result.startChunkX + 8) * 16).toLocaleString()}, {((result.startChunkZ + 8) * 16).toLocaleString()}</strong><small>Between the four center chunks</small></div>
+          <div><span>Northwest corner</span><strong>{(result.startChunkX * 16).toLocaleString()}, {(result.startChunkZ * 16).toLocaleString()}</strong><small>Chunk {result.startChunkX}, {result.startChunkZ}</small></div>
+        </div>
         <p className="map-instructions">Each square is one chunk (16 × 16 blocks). Filled squares are slime chunks.</p>
         <div className="slime-map-scroll">
           <div className="slime-map" role="img" aria-label={`${result.slimeCount} slime chunks in a 16 by 16 chunk area`}>
