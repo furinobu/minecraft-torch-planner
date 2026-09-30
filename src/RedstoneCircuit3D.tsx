@@ -241,7 +241,7 @@ function addDustPath(THREE: Three, root: Group, points: Point[], y: number, powe
       box(THREE, root, x + dx / 2, y, z, Math.abs(dx) + 0.05, 0.04, 0.1, color, { emissive, intensity: powered ? 0.8 : 0, outline: false });
     }
     if (Math.abs(dz) > 0.001) {
-      box(THREE, root, x, y, z + dz / 2, 0.1, 0.04, Math.abs(dz) + 0.05, color, { emissive, intensity: powered ? 0.8 : 0, outline: false });
+      box(THREE, root, nextX, y, z + dz / 2, 0.1, 0.04, Math.abs(dz) + 0.05, color, { emissive, intensity: powered ? 0.8 : 0, outline: false });
     }
   }
 }
@@ -320,7 +320,7 @@ function addGround(THREE: Three, scene: Scene) {
 function buildNot(THREE: Three, root: Group, a: boolean, output: boolean) {
   addInput(THREE, root, -1.8, 0, a, "A");
   addTorch(THREE, root, -1.28, 0, output, true);
-  addDustPath(THREE, root, [[-0.9, 0], [-0.2, 0], [0.6, 0], [1.35, 0]], 0.06, output);
+  addDustPath(THREE, root, [[-0.99, 0], [-0.2, 0], [0.6, 0], [1.58, 0]], 0.06, output);
   addLamp(THREE, root, 2.05, 0, output);
 }
 
@@ -337,13 +337,13 @@ function buildOr(THREE: Three, root: Group, a: boolean, b: boolean, output: bool
   addDustPath(THREE, root, branchA, 0.06, a);
   addDustPath(THREE, root, branchB, 0.06, b);
   if (!invert) {
-    addDustPath(THREE, root, [[1.45, 0], [2, 0]], 0.06, output);
+    addDustPath(THREE, root, [[1.45, 0], [2.2, 0]], 0.06, output);
     addLamp(THREE, root, 2.65, 0, output);
     return;
   }
   addBlock(THREE, root, 1.9, 0, orOutput);
   addTorch(THREE, root, 2.42, 0, output, true);
-  addDustPath(THREE, root, [[2.55, 0], [3.2, 0], [3.85, 0]], 0.06, output);
+  addDustPath(THREE, root, [[2.55, 0], [3.2, 0], [4, 0]], 0.06, output);
   addLamp(THREE, root, 4.45, 0, output);
 }
 
@@ -362,15 +362,15 @@ function buildAnd(THREE: Three, root: Group, a: boolean, b: boolean, output: boo
   addTorch(THREE, root, 0, zb, !b, false, 0.98);
   addDustPath(THREE, root, [[0, za], [0, 0], [0, zb]], 1.04, !a || !b);
   addTorch(THREE, root, 0.54, 0, andOutput, true);
-  addDustPath(THREE, root, [[1.05, 0], [1.72, 0]], 0.06, andOutput);
+  addDustPath(THREE, root, [[0.82, 0], [1.72, 0]], 0.06, andOutput);
   if (!invert) {
-    addDustPath(THREE, root, [[1.72, 0], [2.32, 0]], 0.06, andOutput);
+    addDustPath(THREE, root, [[1.72, 0], [2.46, 0]], 0.06, andOutput);
     addLamp(THREE, root, 2.95, 0, andOutput);
     return;
   }
   addBlock(THREE, root, 2.25, 0, andOutput);
   addTorch(THREE, root, 2.77, 0, output, true);
-  addDustPath(THREE, root, [[2.9, 0], [3.5, 0], [4.1, 0]], 0.06, output);
+  addDustPath(THREE, root, [[2.9, 0], [3.5, 0], [4.22, 0]], 0.06, output);
   addLamp(THREE, root, 4.7, 0, output);
 }
 
@@ -382,9 +382,9 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
     addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-1.7, 0]], 0.06, a);
     addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-1.7, 0]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "AND", andOutput);
-    addDustPath(THREE, root, [[-0.42, 0], [0.25, 0]], 0.06, andOutput);
+    addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, andOutput);
     addModule(THREE, root, 1.05, 0, "NOT", output);
-    addDustPath(THREE, root, [[1.52, 0], [2.2, 0]], 0.06, output);
+    addDustPath(THREE, root, [[1.52, 0], [2.32, 0]], 0.06, output);
     addLamp(THREE, root, 2.8, 0, output);
     return;
   }
@@ -395,9 +395,9 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
     addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-1.7, 0]], 0.06, a);
     addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-1.7, 0]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "OR", orOutput);
-    addDustPath(THREE, root, [[-0.42, 0], [0.25, 0]], 0.06, orOutput);
+    addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, orOutput);
     addModule(THREE, root, 1.05, 0, "NOT", output);
-    addDustPath(THREE, root, [[1.52, 0], [2.2, 0]], 0.06, output);
+    addDustPath(THREE, root, [[1.52, 0], [2.32, 0]], 0.06, output);
     addLamp(THREE, root, 2.8, 0, output);
     return;
   }
@@ -418,7 +418,7 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   addDustPath(THREE, root, [[1.02, -1.2], [1.75, -1.2], [2.25, 0]], 0.06, orOutput);
   addDustPath(THREE, root, [[1.02, 1.2], [1.75, 1.2], [2.25, 0]], 0.13, notAnd);
   addModule(THREE, root, 2.72, 0, "AND", output);
-  addDustPath(THREE, root, [[3.2, 0], [3.85, 0]], 0.06, output);
+  addDustPath(THREE, root, [[3.2, 0], [3.97, 0]], 0.06, output);
   addLamp(THREE, root, 4.45, 0, output);
 }
 
