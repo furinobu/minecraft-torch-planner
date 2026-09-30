@@ -47,6 +47,7 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
   };
 
   const isBinaryLogic = ["NOT", "OR", "AND", "NAND", "NOR", "XOR", "XNOR", "implication", "mux", "demux", "decoder", "half-adder", "full-adder", "majority"].includes(circuit.id);
+  const hasSignalStrengthControl = circuit.id === "repeater-line" || circuit.id === "dust-staircase";
   const result = logicResult(circuit.id, a, b, c, select);
   const sum = Number(a) + Number(b) + Number(c);
   const decoderAddress = Number(a) * 2 + Number(b);
@@ -154,7 +155,7 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
       <p className="circuit-model-note">Toggle the inputs to see the circuit's logical result. This model shows behavior; use the linked layout for Minecraft block placement.</p>
     </div>}
 
-    {circuit.category === "Signal" && <div className="circuit-sim-content">
+    {hasSignalStrengthControl && <div className="circuit-sim-content">
       <label className="field-label circuit-range-label">Source strength · {value}<input type="range" min="0" max="15" value={value} onChange={(event) => setValue(Number(event.target.value))} /></label>
       <div className="signal-strength-track" aria-label={`Signal strength ${value} out of 15`}>{Array.from({ length: 15 }, (_, index) => <i key={index} className={index < value ? "powered" : ""} />)}</div>
       <div className="circuit-model-output"><span>ROUTED STRENGTH</span><strong>{circuit.id === "repeater-line" ? value === 0 ? 0 : 15 : Math.max(0, value - 1)}</strong></div>
