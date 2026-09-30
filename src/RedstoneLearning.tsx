@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { RedstoneClock, RedstoneGate } from "./RedstoneCircuit3D";
+import CircuitBehaviorDemo from "./CircuitBehaviorDemo";
+import { CIRCUIT_CATEGORIES, REDSTONE_CIRCUITS } from "./redstoneCircuits";
 
 const RedstoneCircuit3D = lazy(() => import("./RedstoneCircuit3D"));
 
@@ -15,35 +17,35 @@ const CLOCKS: Array<{
   blocks: number;
   description: string;
   source: string;
-}> = [
-  { id: "repeater-clock", title: "Repeater clock", period: 20, high: 10, low: 10, footprint: "5 × 3 · 1 layer", blocks: 12, description: "A torch inverter and repeater feed a delayed signal back into a loop.", source: "https://redstonery.com/circuits/repeater-clock/" },
-  { id: "torch-clock", title: "Torch clock · 3 torches", period: 12, high: 6, low: 6, footprint: "7 × 5 · 1 layer", blocks: 20, description: "Three inverters form an odd ring, so its signal keeps changing phase.", source: "https://redstonery.com/circuits/torch-clock/" },
-  { id: "comparator-clock", title: "Comparator clock", period: 8, high: 4, low: 4, footprint: "5 × 3 · 1 layer", blocks: 9, description: "A subtract comparator and repeater turn feedback into a fast high/low signal.", source: "https://redstonery.com/circuits/comparator-clock/" },
-  { id: "hopper-clock", title: "Two-hopper piston clock", period: 52, high: 50, low: 2, footprint: "8 × 4 · 2 layers", blocks: 20, description: "Two hoppers exchange four items; pistons switch which side can transfer.", source: "https://redstonery.com/circuits/hopper-clock/" },
-  { id: "stoppable-clock", title: "Stoppable repeater clock", period: 20, high: 10, low: 10, footprint: "5 × 5 · 1 layer", blocks: 14, description: "A stop lever forces the output low, then releasing it restarts the loop.", source: "https://redstonery.com/circuits/enabled-clock/" },
+}> = REDSTONE_CIRCUITS.filter((circuit) => circuit.clock).map((circuit) => ({
+  id: circuit.id as RedstoneClock,
+  title: circuit.title,
+  period: circuit.clock!.period,
+  high: circuit.clock!.high,
+  low: circuit.clock!.low,
+  footprint: `${circuit.width} × ${circuit.depth} · ${circuit.layers} ${circuit.layers === 1 ? "layer" : "layers"}`,
+  blocks: circuit.blocks ?? 0,
+  description: circuit.summary,
+  source: `https://redstonery.com/circuits/${circuit.path}/`,
+}));
+
+const LEARNING_ITEMS = [
+  { id: "ram", title: "4 × 8 RAM", summary: "Write and read four 8-bit words." },
+  { id: "cpu", title: "8-bit CPU", summary: "Trace a tiny program through the datapath." },
 ];
 
-const CIRCUIT_GROUPS: Array<{ name: string; items: Array<{ id: string; title: string; summary: string }> }> = [
-  { name: "Logic", items: [
-    { id: "NOT", title: "NOT gate", summary: "Invert one signal." },
-    { id: "OR", title: "OR gate", summary: "Pass either input." },
-    { id: "AND", title: "AND gate", summary: "Require both inputs." },
-    { id: "NAND", title: "NAND gate", summary: "Invert AND." },
-    { id: "NOR", title: "NOR gate", summary: "Invert OR." },
-    { id: "XOR", title: "XOR gate", summary: "Detect different inputs." },
-    { id: "half-adder", title: "Half adder", summary: "Show sum and carry for two bits." },
-  ] },
-  { name: "Clock", items: CLOCKS.map(({ id, title, description }) => ({ id, title, summary: description })) },
-  { name: "Pulse", items: [{ id: "button-pulse", title: "Button pulse", summary: "Turn a press into a short signal." }] },
-  { name: "Memory", items: [
-    { id: "rs-latch", title: "RS latch", summary: "Remember the last set or reset request." },
-    { id: "ripple-counter", title: "Two-bit counter", summary: "Count four states and roll over." },
-  ] },
-  { name: "Learning", items: [
-    { id: "ram", title: "4 × 8 RAM", summary: "Write and read four 8-bit words." },
-    { id: "cpu", title: "8-bit CPU", summary: "Trace a tiny program through the datapath." },
-  ] },
+const CIRCUIT_GROUPS = [
+  ...CIRCUIT_CATEGORIES.map((name) => ({
+    name,
+    items: REDSTONE_CIRCUITS.filter((circuit) => circuit.category === name).map(({ id, title, summary }) => ({ id, title, summary })),
+  })),
+  { name: "Learning", items: LEARNING_ITEMS },
 ];
+
+const DEDICATED_DEMOS = new Set([
+  "NOT", "OR", "AND", "NAND", "NOR", "XOR", "half-adder", "button-pulse", "rs-latch", "ripple-counter",
+  "repeater-clock", "torch-clock", "comparator-clock", "hopper-clock", "stoppable-clock", "ram", "cpu",
+]);
 
 function evaluate(gate: RedstoneGate, a: boolean, b: boolean) {
   switch (gate) {
@@ -76,6 +78,7 @@ export default function RedstoneLearning() {
   const [memory, setMemory] = useState([0, 0, 0, 0]);
   const output = evaluate(gate, inputA, inputB);
   const activeClock = CLOCKS.find((item) => item.id === activeCircuit) ?? null;
+  const activeCircuitDefinition = REDSTONE_CIRCUITS.find((circuit) => circuit.id === activeCircuit);
   const clockOutput = Boolean(clockPhase && (activeClock?.id === "hopper-clock" || clockEnabled) && !(activeClock?.id === "stoppable-clock" && clockStopped));
   const visibleCircuitGroups = CIRCUIT_GROUPS
     .filter((group) => circuitCategory === "All circuits" || group.name === circuitCategory)
@@ -95,9 +98,12 @@ export default function RedstoneLearning() {
       setClockEnabled(true);
       setClockStopped(false);
     }
-    if (id === "ram" || id === "cpu") {
-      window.setTimeout(() => document.getElementById(id === "ram" ? "memory" : "cpu")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-    }
+    window.setTimeout(() => {
+      const section = id === "ram" ? document.getElementById("memory")
+        : id === "cpu" ? document.getElementById("cpu")
+          : document.querySelector<HTMLElement>(`[data-circuit-id="${id}"]`);
+      section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   };
 
   useEffect(() => {
@@ -141,7 +147,7 @@ export default function RedstoneLearning() {
             {CIRCUIT_GROUPS.map((group) => <option key={group.name}>{group.name}</option>)}
           </select>
         </label>
-        <p className="redstone-library-count">{visibleCircuitGroups.reduce((total, group) => total + group.items.length, 0)} circuit demos</p>
+        <p className="redstone-library-count">{visibleCircuitGroups.reduce((total, group) => total + group.items.length, 0)} shown · 60 circuits + 2 lessons</p>
         <nav className="redstone-library-list" aria-label="Circuits">
           {visibleCircuitGroups.map((group) => <section className="redstone-library-group" key={group.name}>
             <h2>{group.name}</h2>
@@ -163,7 +169,7 @@ export default function RedstoneLearning() {
         <div className="redstone-intro-copy">
           <span className="redstone-kicker">JAVA REDSTONE · BUILDING COURSE</span>
           <h2>From one signal<br /><em>to a tiny computer.</em></h2>
-          <p>Start with on/off logic, make circuits remember a byte, then connect the parts into a small 8-bit CPU. Each stage builds on the one before it.</p>
+          <p>Explore 60 signal, logic, pulse, clock, memory, detection, transport, storage, and piston circuits. Each local preview shows the behavior; open its tested layout when you are ready to build.</p>
         </div>
         <nav className="redstone-lesson-nav" aria-label="Course lessons">
           <a href="#gates" onClick={() => selectCircuit("AND")}><span>01</span>Logic gates</a>
@@ -172,7 +178,7 @@ export default function RedstoneLearning() {
         </nav>
       </section>
 
-      {GATES.includes(activeCircuit as RedstoneGate) && <section className="redstone-section panel" id="gates">
+      {GATES.includes(activeCircuit as RedstoneGate) && <section className="redstone-section panel" id="gates" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">01</span><div><span className="redstone-kicker">MAKE DECISIONS</span><h2>Logic gates</h2></div></div>
         <p className="redstone-copy">A gate takes powered (1) or unpowered (0) inputs and produces one output. Choose a gate, flip the levers, and compare the result with its truth table.</p>
         <div className="gate-lab">
@@ -210,12 +216,12 @@ export default function RedstoneLearning() {
             />
           </Suspense>
           <div className="redstone-reference-links">
-            <a href={gate === "AND" ? "https://redstonery.com/circuits/and/" : gate === "OR" ? "https://redstonery.com/circuits/or/" : "https://redstonery.com/circuits/"} target="_blank" rel="noreferrer">Open a redstone circuit layout ↗</a>
+            {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested {gate} layout ↗</a>}
           </div>
         </div>
       </section>}
 
-      {activeClock && <section className="redstone-section panel clock-section">
+      {activeClock && <section className="redstone-section panel clock-section" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">CLOCK</span><div><span className="redstone-kicker">JAVA REDSTONE · LIVE TIMING</span><h2>{activeClock.title}</h2></div></div>
         <p className="redstone-copy">{activeClock.description} The reference layout measures a {activeClock.period}-tick cycle ({(activeClock.period / 20).toFixed(2)} s), with {activeClock.high} ticks high and {activeClock.low} ticks low.</p>
         <div className="clock-specs"><span>{activeClock.footprint}</span><span>{activeClock.blocks} blocks</span><span>20 game ticks / second</span></div>
@@ -253,7 +259,7 @@ export default function RedstoneLearning() {
         </div>
       </section>}
 
-      {activeCircuit === "half-adder" && <section className="redstone-section panel">
+      {activeCircuit === "half-adder" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">LOGIC</span><div><span className="redstone-kicker">ADD TWO BITS</span><h2>Half adder</h2></div></div>
         <p className="redstone-copy">Two inputs produce a Sum bit and a Carry bit. The sum is XOR; carry is AND.</p>
         <div className="circuit-demo-card">
@@ -263,11 +269,11 @@ export default function RedstoneLearning() {
           </div>
           <div className="circuit-output-pair"><div className={inputA !== inputB ? "lit" : ""}><span>SUM · A XOR B</span><strong>{inputA !== inputB ? 1 : 0}</strong></div><div className={inputA && inputB ? "lit" : ""}><span>CARRY · A AND B</span><strong>{inputA && inputB ? 1 : 0}</strong></div></div>
           <table className="truth-table"><thead><tr><th>A</th><th>B</th><th>Sum</th><th>Carry</th></tr></thead><tbody>{[[0, 0], [0, 1], [1, 0], [1, 1]].map(([a, b]) => <tr className={inputA === (a === 1) && inputB === (b === 1) ? "current-row" : ""} key={`${a}-${b}`}><td>{a}</td><td>{b}</td><td>{a !== b ? 1 : 0}</td><td>{a && b ? 1 : 0}</td></tr>)}</tbody></table>
-          <a href="https://redstonery.com/circuits/half-adder/" target="_blank" rel="noreferrer">Open the tested half-adder layout ↗</a>
+          {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested half-adder layout ↗</a>}
         </div>
       </section>}
 
-      {activeCircuit === "rs-latch" && <section className="redstone-section panel">
+      {activeCircuit === "rs-latch" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">MEMORY</span><div><span className="redstone-kicker">REMEMBER ONE BIT</span><h2>RS latch</h2></div></div>
         <p className="redstone-copy">Set or reset the latch, then release the control. Feedback keeps Q at its last selected state.</p>
         <div className="latch-demo circuit-demo-card">
@@ -279,16 +285,24 @@ export default function RedstoneLearning() {
         </div>
       </section>}
 
-      {activeCircuit === "ripple-counter" && <section className="redstone-section panel">
+      {activeCircuit === "ripple-counter" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">MEMORY</span><div><span className="redstone-kicker">COUNT EVENTS</span><h2>Two-bit ripple counter</h2></div></div>
         <p className="redstone-copy">Each count pulse advances one state. The two stored bits roll through 00, 01, 10, 11, then back to 00.</p>
         <div className="counter-demo circuit-demo-card"><div className="counter-bits"><div className={counterValue & 2 ? "lit" : ""}><span>BIT 1</span><strong>{(counterValue >> 1) & 1}</strong></div><div className={counterValue & 1 ? "lit" : ""}><span>BIT 0</span><strong>{counterValue & 1}</strong></div></div><strong className="counter-decimal">{counterValue} / 3</strong><button className="small-button" type="button" onClick={() => setCounterValue((value) => (value + 1) % 4)}>Send count pulse</button><button className="clear-button" type="button" onClick={() => setCounterValue(0)}>Reset preview</button><a href="https://redstonery.com/circuits/pulse-counter/" target="_blank" rel="noreferrer">Open the tested counter layout ↗</a></div>
       </section>}
 
-      {activeCircuit === "button-pulse" && <section className="redstone-section panel">
+      {activeCircuit === "button-pulse" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step">PULSE</span><div><span className="redstone-kicker">TURN A PRESS INTO AN EVENT</span><h2>Button pulse</h2></div></div>
         <p className="redstone-copy">A button sends a short signal, then releases on its own. This preview shows a 10-game-tick (0.5 second) pulse.</p>
         <div className="pulse-demo circuit-demo-card"><button className="small-button" type="button" disabled={pulseOn} onClick={() => { setPulseOn(true); window.setTimeout(() => setPulseOn(false), 500); }}>Press button</button><div className={`pulse-lamp ${pulseOn ? "lit" : ""}`}><span>OUTPUT</span><strong>{pulseOn ? "1 · PULSE" : "0 · OFF"}</strong></div><a href="https://redstonery.com/circuits/button-pulse/" target="_blank" rel="noreferrer">Open the tested button-pulse layout ↗</a></div>
+      </section>}
+
+      {activeCircuitDefinition && !DEDICATED_DEMOS.has(activeCircuit) && <section className="redstone-section panel circuit-detail-section" data-circuit-id={activeCircuit}>
+        <div className="redstone-section-title"><span className="redstone-step circuit-category-step">{activeCircuitDefinition.category.toUpperCase()}</span><div><span className="redstone-kicker">CIRCUIT EXPLORER · JAVA</span><h2>{activeCircuitDefinition.title}</h2></div></div>
+        <p className="redstone-copy">{activeCircuitDefinition.summary} Try the behavior model, then use the source layout for exact block positions and build instructions.</p>
+        <div className="clock-specs circuit-specs"><span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span><span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
+        <CircuitBehaviorDemo circuit={activeCircuitDefinition} />
+        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested Minecraft layout ↗</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse all 60 Redstonery circuits ↗</a></div>
       </section>}
 
       <section className="redstone-section panel" id="memory">

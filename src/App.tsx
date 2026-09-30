@@ -385,8 +385,8 @@ export default function App() {
           <p>Move players and farm platforms around a sample server map. The list updates as their distance bands overlap.</p>
         </> : <>
           <div className="eyebrow"><span className="eyebrow-dot" /> LEARN REDSTONE COMPUTING</div>
-          <h1>Build a computer<br /><em>one bit at a time.</em></h1>
-          <p>Explore logic gates, store bytes in RAM, and connect the parts into a tiny 8-bit CPU.</p>
+          <h1>Explore redstone,<br /><em>one signal at a time.</em></h1>
+          <p>Browse 60 Java circuits, from signal routing and logic gates to clocks, memory, transport, storage, and pistons.</p>
         </>}
       </section>
 
