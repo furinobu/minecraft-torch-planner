@@ -26,6 +26,8 @@ button { color: inherit; }
 .utility-nav { display: flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid #333b32; border-radius: 5px; background: #181d18; }
 .utility-nav a { display: inline-block; border: 0; border-radius: 3px; padding: 6px 9px; background: transparent; color: #8e9688; font-size: 10px; text-decoration: none; cursor: pointer; }
 .utility-nav a.active { color: #f0d49f; background: #3c3425; }
+.utility-nav .utility-copy-link { display: inline-block; border: 0; border-radius: 3px; padding: 6px 9px; background: #252b24; color: #d8dfd0; font-size: 10px; white-space: nowrap; cursor: pointer; }
+.utility-nav .utility-copy-link:hover { color: #f0d49f; background: #30372e; }
 .utility-hidden { display: none !important; }
 .hero { max-width: 800px; padding: 54px 0 44px; }
 .eyebrow { color: var(--green); font: 10px 'DM Mono', monospace; letter-spacing: .13em; display: flex; align-items: center; gap: 9px; }

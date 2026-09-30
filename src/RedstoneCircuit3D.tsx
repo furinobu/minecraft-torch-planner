@@ -337,7 +337,7 @@ function buildOr(THREE: Three, root: Group, a: boolean, b: boolean, output: bool
   const za = -1.25;
   const zb = 1.25;
   addInput(THREE, root, -3.1, za, a, "A");
-  addInput(THREE, root, -3.1, zb, b, "B");
+  addInput(THREE, root, -3.1, zb, b, "B", "B");
   addRepeater(THREE, root, -1.55, za, a);
   addRepeater(THREE, root, -1.55, zb, b);
   const repeaterLeft = -1.55 - 0.36 - 0.085;
@@ -362,7 +362,7 @@ function buildAnd(THREE: Three, root: Group, a: boolean, b: boolean, output: boo
   const za = -1.2;
   const zb = 1.2;
   addInput(THREE, root, -2.6, za, a, "A");
-  addInput(THREE, root, -2.6, zb, b, "B");
+  addInput(THREE, root, -2.6, zb, b, "B", "B");
   addDustPath(THREE, root, [[-2.1, za], [-1.15, za], [-0.45, za], [0, za]], 0.06, a);
   addDustPath(THREE, root, [[-2.1, zb], [-1.15, zb], [-0.45, zb], [0, zb]], 0.06, b);
   addBlock(THREE, root, 0, za);
@@ -388,7 +388,7 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   if (gate === "NAND") {
     const andOutput = a && b;
     addInput(THREE, root, -3.7, -1.1, a, "A");
-    addInput(THREE, root, -3.7, 1.1, b, "B");
+    addInput(THREE, root, -3.7, 1.1, b, "B", "B");
     addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
     addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "AND", andOutput);
@@ -401,7 +401,7 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   if (gate === "NOR") {
     const orOutput = a || b;
     addInput(THREE, root, -3.7, -1.1, a, "A");
-    addInput(THREE, root, -3.7, 1.1, b, "B");
+    addInput(THREE, root, -3.7, 1.1, b, "B", "B");
     addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
     addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "OR", orOutput);
@@ -413,7 +413,7 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   }
 
   addInput(THREE, root, -3, -1.1, a, "A");
-  addInput(THREE, root, -3, 1.1, b, "B");
+  addInput(THREE, root, -3, 1.1, b, "B", "B");
   addDustPath(THREE, root, [[-2.5, -1.1], [-1.5, -1.1], [-1.5, -0.25], [-0.555, -0.25]], 0.06, a);
   addDustPath(THREE, root, [[-2.5, 1.1], [-1.5, 1.1], [-1.5, 0.25], [-0.555, 0.25]], 0.06, b);
   addModule(THREE, root, 0, 0, "XOR", output);
@@ -519,7 +519,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     }
     if (circuit.id === "wire-bridge") {
       addInput(THREE, root, -3.4, -1.6, a, "A");
-      addInput(THREE, root, -3.4, 1.6, b, "B");
+      addInput(THREE, root, -3.4, 1.6, b, "B", "B");
       addDustPath(THREE, root, [[-2.9, -1.6], [-1.6, -1.6], [0, -1.6], [1.6, -1.6], [2.8, -1.6]], 0.06, a);
       addDustPath(THREE, root, [[-2.9, 1.6], [-1.6, 1.6], [0, 1.6], [1.6, 1.6], [2.8, 1.6]], 1.06, b);
       addBlock(THREE, root, 0, 0);
@@ -528,7 +528,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     }
     if (circuit.id === "diode-branch") {
       addInput(THREE, root, -3.1, -1.1, a, "A");
-      addInput(THREE, root, -3.1, 1.1, b, "B");
+      addInput(THREE, root, -3.1, 1.1, b, "B", "B");
       addRepeater(THREE, root, -1.45, -1.1, a);
       addRepeater(THREE, root, -1.45, 1.1, b);
       addDustPath(THREE, root, [[-1, -1.1], [0, -1.1], [0.75, 0]], 0.06, a);
@@ -549,7 +549,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
   if (circuit.category === "Logic") {
     if (circuit.id === "half-adder" || circuit.id === "full-adder") {
       addInput(THREE, root, -3.4, -1.15, a, "A");
-      addInput(THREE, root, -3.4, 1.15, b, "B");
+      addInput(THREE, root, -3.4, 1.15, b, "B", "B");
       if (circuit.id === "full-adder") addInput(THREE, root, -1.7, 2.25, c, "C", "C");
       addDustPath(THREE, root, [[-2.9, -1.15], [-1.4, -1.15], [-1.4, -0.25], [-1.005, -0.25]], 0.06, a);
       addDustPath(THREE, root, [[-2.9, 1.15], [-1.4, 1.15], [-1.4, 0.25], [-1.005, 0.25]], 0.06, b);
@@ -565,7 +565,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     }
     if (circuit.id === "decoder") {
       addInput(THREE, root, -3.2, -0.8, a, "A");
-      addInput(THREE, root, -3.2, 0.8, b, "B");
+      addInput(THREE, root, -3.2, 0.8, b, "B", "B");
       const address = Number(a) * 2 + Number(b);
       addDustPath(THREE, root, [[-2.7, -0.8], [-1.9, -0.8], [-1.9, -0.25], [-1.255, -0.25]], 0.06, a);
       addDustPath(THREE, root, [[-2.7, 0.8], [-1.9, 0.8], [-1.9, 0.25], [-1.255, 0.25]], 0.06, b);

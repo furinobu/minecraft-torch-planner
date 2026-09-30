@@ -47,6 +47,33 @@ const DEDICATED_DEMOS = new Set([
   "repeater-clock", "torch-clock", "comparator-clock", "hopper-clock", "stoppable-clock", "ram", "cpu",
 ]);
 
+function selectionFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const gate = params.get("gate");
+  if (GATES.includes(gate as RedstoneGate)) return gate as RedstoneGate;
+  const circuit = params.get("circuit");
+  return circuit && (REDSTONE_CIRCUITS.some((item) => item.id === circuit) || LEARNING_ITEMS.some((item) => item.id === circuit))
+    ? circuit
+    : "AND";
+}
+
+function selectionHref(id: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("gate");
+  url.searchParams.delete("circuit");
+  url.searchParams.set(GATES.includes(id as RedstoneGate) ? "gate" : "circuit", id);
+  url.hash = "";
+  return `${url.pathname}${url.search}`;
+}
+
+function scrollToSelection(id: string) {
+  const section = id === "ram" ? document.getElementById("memory")
+    : id === "cpu" ? document.getElementById("cpu")
+      : GATES.includes(id as RedstoneGate) ? document.getElementById("gates")
+        : document.querySelector<HTMLElement>(`[data-circuit-id="${id}"]`);
+  section?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function evaluate(gate: RedstoneGate, a: boolean, b: boolean) {
   switch (gate) {
     case "NOT": return !a;
@@ -59,8 +86,11 @@ function evaluate(gate: RedstoneGate, a: boolean, b: boolean) {
 }
 
 export default function RedstoneLearning() {
-  const [gate, setGate] = useState<RedstoneGate>("AND");
-  const [activeCircuit, setActiveCircuit] = useState("AND");
+  const [gate, setGate] = useState<RedstoneGate>(() => {
+    const selection = selectionFromUrl();
+    return GATES.includes(selection as RedstoneGate) ? selection as RedstoneGate : "AND";
+  });
+  const [activeCircuit, setActiveCircuit] = useState(() => selectionFromUrl());
   const [circuitSearch, setCircuitSearch] = useState("");
   const [circuitCategory, setCircuitCategory] = useState("All circuits");
   const [inputA, setInputA] = useState(false);
@@ -87,6 +117,9 @@ export default function RedstoneLearning() {
   const tableRows: Array<[number, number | null]> = gate === "NOT" ? [[0, null], [1, null]] : [[0, 0], [0, 1], [1, 0], [1, 1]];
 
   const selectCircuit = (id: string) => {
+    const nextUrl = selectionHref(id);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentUrl !== nextUrl) window.history.pushState({ redstoneSelection: id }, "", nextUrl);
     setActiveCircuit(id);
     if (GATES.includes(id as RedstoneGate)) setGate(id as RedstoneGate);
     if (CLOCKS.some((item) => item.id === id)) {
@@ -95,13 +128,31 @@ export default function RedstoneLearning() {
       setClockEnabled(true);
       setClockStopped(false);
     }
-    window.setTimeout(() => {
-      const section = id === "ram" ? document.getElementById("memory")
-        : id === "cpu" ? document.getElementById("cpu")
-          : document.querySelector<HTMLElement>(`[data-circuit-id="${id}"]`);
-      section?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 0);
+    window.setTimeout(() => scrollToSelection(id), 0);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("gate") && !params.has("circuit")) return;
+    window.setTimeout(() => scrollToSelection(selectionFromUrl()), 0);
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      const selection = selectionFromUrl();
+      setActiveCircuit(selection);
+      if (GATES.includes(selection as RedstoneGate)) setGate(selection as RedstoneGate);
+      if (CLOCKS.some((item) => item.id === selection)) {
+        setClockPhase(false);
+        setClockRunning(true);
+        setClockEnabled(true);
+        setClockStopped(false);
+      }
+      window.setTimeout(() => scrollToSelection(selection), 0);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     const stopLeverOn = activeClock?.id === "stoppable-clock" && clockStopped;
@@ -169,9 +220,9 @@ export default function RedstoneLearning() {
           <p>Explore {REDSTONE_CIRCUITS.length} signal, logic, pulse, clock, memory, detection, transport, storage, and piston circuits. Each local preview shows the behavior; open its tested layout when you are ready to build.</p>
         </div>
         <nav className="redstone-lesson-nav" aria-label="Course lessons">
-          <a href="#gates" onClick={() => selectCircuit("AND")}><span>01</span>Logic gates</a>
-          <a href="#memory"><span>02</span>8-bit RAM</a>
-          <a href="#cpu"><span>03</span>8-bit CPU</a>
+          <a href={selectionHref("AND")} onClick={(event) => { event.preventDefault(); selectCircuit("AND"); }}><span>01</span>Logic gates</a>
+          <a href={selectionHref("ram")} onClick={(event) => { event.preventDefault(); selectCircuit("ram"); }}><span>02</span>8-bit RAM</a>
+          <a href={selectionHref("cpu")} onClick={(event) => { event.preventDefault(); selectCircuit("cpu"); }}><span>03</span>8-bit CPU</a>
         </nav>
       </section>
 

@@ -66,6 +66,7 @@ export default function App() {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   const [height, setHeight] = useState(INITIAL_HEIGHT);
   const utility = utilityFromPath();
+  const [linkCopied, setLinkCopied] = useState(false);
   const [terrain, setTerrain] = useState(() => new Uint8Array(INITIAL_WIDTH * INITIAL_HEIGHT).fill(2));
   const [rule, setRule] = useState<Rule>("modern");
   const [tool, setTool] = useState<Tool>("floor");
@@ -98,6 +99,16 @@ export default function App() {
     const z = Math.floor(position / width);
     return worldOrigin ? `${worldOrigin.x + x}, ${worldOrigin.z + z}` : `${x}, ${z}`;
   }) ?? [];
+
+  const copyCurrentLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1600);
+    } catch {
+      setLinkCopied(false);
+    }
+  };
 
   const cancelPlan = () => {
     workerRef.current?.terminate();
@@ -367,6 +378,7 @@ export default function App() {
           <a className={utility === "slimes" ? "active" : ""} href={`${import.meta.env.BASE_URL}slime-finder/`} aria-current={utility === "slimes" ? "page" : undefined}>Slime finder</a>
           <a className={utility === "farm" ? "active" : ""} href={`${import.meta.env.BASE_URL}farm-overlap/`} aria-current={utility === "farm" ? "page" : undefined}>Farm demo</a>
           <a className={utility === "redstone" ? "active" : ""} href={`${import.meta.env.BASE_URL}redstone-lab/`} aria-current={utility === "redstone" ? "page" : undefined}>Redstone lab</a>
+          <button className="utility-copy-link" type="button" onClick={copyCurrentLink}>{linkCopied ? "Copied" : "Copy link"}</button>
         </nav>
       </header>
 
