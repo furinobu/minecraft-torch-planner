@@ -28,7 +28,6 @@ export type CircuitDefinition = {
 // Circuit names and dimensions follow Redstonery's public catalog. Local previews
 // explain each circuit's behavior; the source links show its tested block layout.
 export const REDSTONE_CIRCUITS: CircuitDefinition[] = [
-  { id: "dust-line", category: "Signal", title: "Dust line", summary: "See how far one source can carry a usable signal.", path: "dust-line", width: 18, depth: 1, layers: 1 },
   { id: "repeater-line", category: "Signal", title: "Repeater restores", summary: "Separate restoring signal strength from delaying a signal.", path: "repeater-line", width: 7, depth: 1, layers: 1 },
   { id: "diode-branch", category: "Signal", title: "Isolated OR branches", summary: "Keep a branch from driving backward into its source.", path: "diode-branch", width: 6, depth: 3, layers: 1 },
   { id: "dust-staircase", category: "Signal", title: "Dust staircase", summary: "Carry a signal between heights while checking support and clearance.", path: "dust-staircase", width: 9, depth: 1, layers: 5 },

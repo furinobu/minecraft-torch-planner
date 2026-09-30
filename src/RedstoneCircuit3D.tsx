@@ -27,6 +27,7 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { Group, Material, Object3D, OrthographicCamera, Scene, WebGLRenderer } from "three";
 import type { OrbitControls as OrbitControlsType } from "three/addons/controls/OrbitControls.js";
+import type { CircuitDefinition } from "./redstoneCircuits";
 
 const THREE = {
   BoxGeometry,
@@ -58,11 +59,22 @@ export type RedstoneGate = "NOT" | "OR" | "AND" | "NAND" | "NOR" | "XOR";
 export type RedstoneClock = "repeater-clock" | "torch-clock" | "comparator-clock" | "hopper-clock" | "stoppable-clock";
 
 type Props = {
-  gate: RedstoneGate;
+  gate?: RedstoneGate;
+  circuit?: CircuitDefinition;
   inputA: boolean;
   inputB: boolean;
+  inputC?: boolean;
+  select?: boolean;
   output: boolean;
-  onInputToggle?: (input: "A" | "B") => void;
+  secondaryOutput?: boolean;
+  value?: number;
+  stored?: number;
+  itemCount?: number;
+  sentCount?: number;
+  locked?: boolean;
+  extended?: boolean;
+  pulse?: boolean;
+  onInputToggle?: (input: "A" | "B" | "C" | "SEL") => void;
   clock?: RedstoneClock;
   clockPhase?: boolean;
   clockEnabled?: boolean;
@@ -169,10 +181,12 @@ function addBlock(THREE: Three, root: Group, x: number, z: number, powered = fal
   });
 }
 
-function addLever(THREE: Three, root: Group, x: number, z: number, powered: boolean, label: string) {
+type CircuitInput = "A" | "B" | "C" | "SEL";
+
+function addLever(THREE: Three, root: Group, x: number, z: number, powered: boolean, label: string, inputId: CircuitInput = "A") {
   const lever = new THREE.Group();
   lever.position.set(x, 0, z);
-  lever.userData.input = label;
+  lever.userData.input = inputId;
   root.add(lever);
   box(THREE, lever, 0, 1.0, 0, 0.38, 0.08, 0.3, 0x62665b);
   const bar = new THREE.Mesh(
@@ -186,9 +200,9 @@ function addLever(THREE: Three, root: Group, x: number, z: number, powered: bool
   addLabel(THREE, root, `${label} ${powered ? 1 : 0}`, x, 1.65, z, 0.82);
 }
 
-function addInput(THREE: Three, root: Group, x: number, z: number, powered: boolean, label: string) {
+function addInput(THREE: Three, root: Group, x: number, z: number, powered: boolean, label: string, inputId: CircuitInput = "A") {
   addBlock(THREE, root, x, z, powered);
-  addLever(THREE, root, x, z, powered, label);
+  addLever(THREE, root, x, z, powered, label, inputId);
 }
 
 function addTorch(THREE: Three, root: Group, x: number, z: number, powered: boolean, wall = false, baseY = 1) {
@@ -250,6 +264,29 @@ function addHopper(THREE: Three, root: Group, x: number, y: number, z: number) {
   box(THREE, root, x, y, z, 0.7, 0.16, 0.7, 0x434941);
   box(THREE, root, x, y - 0.2, z, 0.4, 0.26, 0.4, 0x353b35);
   box(THREE, root, x, y - 0.38, z, 0.18, 0.12, 0.18, 0x252a25);
+}
+
+function addContainer(THREE: Three, root: Group, x: number, z: number, itemCount = 0) {
+  box(THREE, root, x, 0.43, z, 0.86, 0.76, 0.86, 0x735a38);
+  box(THREE, root, x, 0.84, z, 0.9, 0.08, 0.9, 0x9a7946);
+  box(THREE, root, x, 0.43, z - 0.45, 0.9, 0.18, 0.07, 0xa1814d);
+  if (itemCount > 0) {
+    const visibleItems = Math.min(5, Math.ceil(itemCount / 4));
+    for (let index = 0; index < visibleItems; index += 1) {
+      box(THREE, root, x - 0.28 + (index % 3) * 0.28, 0.92, z - 0.22 + Math.floor(index / 3) * 0.28, 0.14, 0.14, 0.14, 0xb2a06e, { outline: false });
+    }
+  }
+}
+
+function addDropper(THREE: Three, root: Group, x: number, z: number, active: boolean) {
+  box(THREE, root, x, 0.48, z, 0.86, 0.86, 0.86, 0x72786a, { emissive: active ? 0x693820 : 0, intensity: active ? 0.3 : 0 });
+  box(THREE, root, x, 0.5, z - 0.44, 0.46, 0.38, 0.06, 0x343a32);
+  addLabel(THREE, root, active ? "FIRE" : "DROP", x, 1.1, z, 0.95);
+}
+
+function addPressurePlate(THREE: Three, root: Group, x: number, z: number, pressed: boolean) {
+  const plate = box(THREE, root, x, 0.06, z, 0.82, pressed ? 0.12 : 0.06, 0.82, pressed ? 0x9e8053 : 0x88806d);
+  plate.userData.input = "A";
 }
 
 function addPiston(THREE: Three, root: Group, x: number, y: number, z: number, extended: boolean) {
@@ -445,16 +482,258 @@ function buildClockCircuit(THREE: Three, root: Group, props: Props) {
   addLabel(THREE, root, `OUT ${running ? 1 : 0}`, -2.15, 1.05, 0, 1.05);
 }
 
+function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
+  const circuit = props.circuit;
+  if (!circuit) return;
+  const { inputA: a, inputB: b, output } = props;
+  const c = Boolean(props.inputC);
+  const selected = Boolean(props.select);
+  const secondary = Boolean(props.secondaryOutput);
+  const value = props.value ?? 0;
+  const stored = props.stored ?? 0;
+  const itemCount = props.itemCount ?? 0;
+  const sentCount = props.sentCount ?? 0;
+
+  if (circuit.category === "Signal") {
+    if (circuit.id === "dust-staircase") {
+      addInput(THREE, root, -3, 0, a, "A");
+      for (let step = 0; step < 5; step += 1) {
+        const x = -1.8 + step * 0.8;
+        const y = 0.25 + step * 0.46;
+        box(THREE, root, x, y, 0, 0.78, 0.7, 0.78, 0x777c77);
+        box(THREE, root, x, y + 0.37, 0, 0.18, 0.045, 0.18, output ? 0xff3828 : 0x581b1a, { outline: false, emissive: output ? 0xa42318 : 0, intensity: output ? 0.7 : 0 });
+      }
+      addLamp(THREE, root, 2.7, 0, output);
+      addLabel(THREE, root, "5 LEVELS", 0, 3.1, -0.3, 1.2);
+      return;
+    }
+    if (circuit.id === "torch-tower") {
+      for (let level = 0; level < 4; level += 1) {
+        const y = 0.55 + level * 0.65;
+        addTorch(THREE, root, level % 2 === 0 ? -0.45 : 0.45, 0, level % 2 === 0 ? output : !output, false, y);
+        box(THREE, root, 0, y, 0, 0.94, 0.96, 0.94, 0x777c77);
+      }
+      addInput(THREE, root, -2.6, 0, a, "A");
+      addLabel(THREE, root, "INVERT", 1.25, 3.45, 0, 1.05);
+      return;
+    }
+    if (circuit.id === "wire-bridge") {
+      addInput(THREE, root, -3.4, -1.6, a, "A");
+      addInput(THREE, root, -3.4, 1.6, b, "B");
+      addDustPath(THREE, root, [[-2.9, -1.6], [-1.6, -1.6], [0, -1.6], [1.6, -1.6], [2.8, -1.6]], 0.06, a);
+      addDustPath(THREE, root, [[-2.9, 1.6], [-1.6, 1.6], [0, 1.6], [1.6, 1.6], [2.8, 1.6]], 1.06, b);
+      addBlock(THREE, root, 0, 0);
+      addLabel(THREE, root, "CROSSING · ISOLATED", 0, 1.6, 0, 2.25);
+      return;
+    }
+    if (circuit.id === "diode-branch") {
+      addInput(THREE, root, -3.1, -1.1, a, "A");
+      addInput(THREE, root, -3.1, 1.1, b, "B");
+      addRepeater(THREE, root, -1.45, -1.1, a);
+      addRepeater(THREE, root, -1.45, 1.1, b);
+      addDustPath(THREE, root, [[-1, -1.1], [0, -1.1], [0.75, 0]], 0.06, a);
+      addDustPath(THREE, root, [[-1, 1.1], [0, 1.1], [0.75, 0]], 0.06, b);
+      addDustPath(THREE, root, [[0.75, 0], [1.7, 0]], 0.06, output);
+      addLamp(THREE, root, 2.3, 0, output);
+      return;
+    }
+    addInput(THREE, root, -3.2, 0, a, "A");
+    if (circuit.id === "strong-power") addBlock(THREE, root, -0.8, 0, output);
+    else addRepeater(THREE, root, -1.4, 0, output);
+    addDustPath(THREE, root, [[-2.7, 0], [-1.4, 0], [-0.45, 0], [0.5, 0], [1.6, 0]], 0.06, output);
+    addLamp(THREE, root, 2.3, 0, output);
+    if (circuit.id === "repeater-line") addLabel(THREE, root, "SIGNAL RESTORED", 0, 1.15, -0.4, 1.65);
+    return;
+  }
+
+  if (circuit.category === "Logic") {
+    if (circuit.id === "half-adder" || circuit.id === "full-adder") {
+      addInput(THREE, root, -3.4, -1.15, a, "A");
+      addInput(THREE, root, -3.4, 1.15, b, "B");
+      if (circuit.id === "full-adder") addInput(THREE, root, -1.7, 2.25, c, "C", "C");
+      addDustPath(THREE, root, [[-2.9, -1.15], [-1.9, -1.15], [-1.05, -1.15]], 0.06, a);
+      addDustPath(THREE, root, [[-2.9, 1.15], [-1.9, 1.15], [-1.05, 1.15]], 0.06, b);
+      addModule(THREE, root, -0.45, -1.15, "XOR", output);
+      addModule(THREE, root, -0.45, 1.15, "AND", secondary);
+      if (circuit.id === "full-adder") addModule(THREE, root, 1.0, 0, "CARRY", secondary);
+      addLamp(THREE, root, 2.55, -1.15, output);
+      addLamp(THREE, root, 2.55, 1.15, secondary);
+      addLabel(THREE, root, "SUM", 2.55, 1.25, -1.15, 0.8);
+      addLabel(THREE, root, "CARRY", 2.55, 1.25, 1.15, 0.95);
+      return;
+    }
+    if (circuit.id === "decoder") {
+      addInput(THREE, root, -3.2, -0.8, a, "A");
+      addInput(THREE, root, -3.2, 0.8, b, "B");
+      const address = Number(a) * 2 + Number(b);
+      for (let line = 0; line < 4; line += 1) {
+        const z = -1.8 + line * 1.2;
+        addDustPath(THREE, root, [[-2.7, 0], [-1.7, 0], [-0.8, z], [0.3, z]], 0.06, address === line);
+        addLamp(THREE, root, 1.25, z, address === line);
+        addLabel(THREE, root, `Y${line}`, 1.25, 1.2, z, 0.55);
+      }
+      return;
+    }
+    if (circuit.id === "demux") {
+      addInput(THREE, root, -3.2, 0, a, "A");
+      addInput(THREE, root, -1.9, 2.0, selected, "SEL", "SEL");
+      addDustPath(THREE, root, [[-2.7, 0], [-1.2, 0], [0, 0], [0.7, selected ? 1.2 : -1.2], [1.3, selected ? 1.2 : -1.2]], 0.06, a);
+      addLamp(THREE, root, 1.9, -1.2, a && !selected);
+      addLamp(THREE, root, 1.9, 1.2, a && selected);
+      addLabel(THREE, root, "Y0", 1.9, 1.15, -1.2, 0.6);
+      addLabel(THREE, root, "Y1", 1.9, 1.15, 1.2, 0.6);
+      return;
+    }
+    addInput(THREE, root, -3.2, -1.1, a, circuit.id === "mux" ? "D0" : "A", "A");
+    addInput(THREE, root, -3.2, 1.1, b, circuit.id === "mux" ? "D1" : "B", "B");
+    if (circuit.id === "majority") addInput(THREE, root, -1.9, 2.4, c, "C", "C");
+    if (circuit.id === "mux") addInput(THREE, root, -1.9, 2.4, selected, "SEL", "SEL");
+    const logicName = circuit.id === "implication" ? "A→B" : circuit.title.replace(" gate", "").slice(0, 8).toUpperCase();
+    addDustPath(THREE, root, [[-2.7, -1.1], [-1.5, -1.1], [-0.7, 0]], 0.06, a);
+    addDustPath(THREE, root, [[-2.7, 1.1], [-1.5, 1.1], [-0.7, 0]], 0.06, b);
+    addModule(THREE, root, 0.1, 0, logicName, output);
+    addDustPath(THREE, root, [[0.58, 0], [1.45, 0]], 0.06, output);
+    addLamp(THREE, root, 2.1, 0, output);
+    return;
+  }
+
+  if (circuit.category === "Pulse") {
+    const lit = Boolean(props.pulse ?? output);
+    addInput(THREE, root, -3, 0, a || lit, "A");
+    if (circuit.id === "hopper-timer") {
+      addHopper(THREE, root, -1.1, 0.6, 0);
+      addComparator(THREE, root, 0.1, 0.14, lit);
+    } else if (circuit.id === "retriggerable-timer") {
+      addComparator(THREE, root, -0.9, 0.14, lit);
+      addRepeater(THREE, root, 0.35, 0, lit);
+    } else {
+      addRepeater(THREE, root, -0.9, 0, lit);
+      if (circuit.id === "observer-edge") addBlock(THREE, root, 0.3, 0, lit);
+    }
+    addDustPath(THREE, root, [[-2.5, 0], [-1.5, 0], [-0.5, 0], [0.75, 0], [1.5, 0]], 0.06, lit);
+    addLamp(THREE, root, 2.2, 0, lit);
+    addLabel(THREE, root, lit ? "PULSE" : "WAIT", 0.3, 1.25, -0.4, 0.85);
+    return;
+  }
+
+  if (circuit.category === "Memory") {
+    if (circuit.id === "register-4bit") {
+      addInput(THREE, root, -3.1, 0, a, "WRITE");
+      for (let bit = 0; bit < 4; bit += 1) {
+        const powered = Boolean(stored & (1 << bit));
+        const z = -1.8 + bit * 1.2;
+        addBlock(THREE, root, 0, z, powered);
+        addTorch(THREE, root, 0.7, z, powered, true);
+        addLamp(THREE, root, 2, z, powered);
+        addLabel(THREE, root, `BIT ${bit}`, 2, 1.15, z, 0.9);
+      }
+      return;
+    }
+    if (circuit.id === "analog-memory") {
+      addComparator(THREE, root, -0.3, 0, output);
+      for (let level = 0; level < 5; level += 1) {
+        const powered = level < Math.ceil(stored / 3);
+        box(THREE, root, 1.0 + level * 0.38, 0.1 + level * 0.2, 0, 0.28, 0.16, 0.32, powered ? 0xff4936 : 0x581b1a, { outline: false, emissive: powered ? 0xa42318 : 0, intensity: powered ? 0.6 : 0 });
+      }
+      addLabel(THREE, root, `PEAK ${stored}`, 1.5, 1.8, -0.35, 1.15);
+      return;
+    }
+    if (circuit.id === "piston-toggle") {
+      addInput(THREE, root, -2.8, 0, a, "T");
+      addPiston(THREE, root, 0, 0.28, 0, Boolean(stored));
+      addBlock(THREE, root, 1.2 + (stored ? 0.8 : 0), 0, Boolean(stored));
+      addLamp(THREE, root, 2.7, 0, Boolean(stored));
+      return;
+    }
+    if (circuit.id === "copper-bulb") {
+      addInput(THREE, root, -2.8, 0, a, "T");
+      box(THREE, root, 0, 0.52, 0, 0.94, 0.94, 0.94, stored ? 0xf0ba69 : 0x996342, { emissive: stored ? 0xa35f26 : 0, intensity: stored ? 0.6 : 0 });
+      addDustPath(THREE, root, [[-2.3, 0], [-1.4, 0], [-0.5, 0]], 0.06, a);
+      addLabel(THREE, root, stored ? "LIT · ON" : "LIT · OFF", 0, 1.55, 0, 1.2);
+      return;
+    }
+    addInput(THREE, root, -3, -1.1, a, circuit.id === "rs-latch" ? "SET" : "D", "A");
+    addInput(THREE, root, -3, 1.1, b, circuit.id === "rs-latch" ? "RESET" : "CLK", "B");
+    addDustPath(THREE, root, [[-2.5, -1.1], [-1.6, -1.1], [-0.6, -1.1], [0.2, 0]], 0.06, output);
+    addDustPath(THREE, root, [[-2.5, 1.1], [-1.6, 1.1], [-0.6, 1.1], [0.2, 0]], 0.06, !output);
+    addBlock(THREE, root, 0.5, 0, output);
+    addTorch(THREE, root, 1.0, -0.2, !output, true);
+    addLamp(THREE, root, 2.2, -1, output);
+    addLamp(THREE, root, 2.2, 1, !output);
+    addLabel(THREE, root, output ? "Q 1" : "Q 0", 2.2, 1.4, -1, 0.85);
+    return;
+  }
+
+  if (circuit.category === "Detection") {
+    if (circuit.id === "pressure-plate") {
+      addPressurePlate(THREE, root, -1.5, 0, output);
+      addDustPath(THREE, root, [[-1.0, 0], [0, 0], [1.1, 0]], 0.06, output);
+      addLamp(THREE, root, 1.8, 0, output);
+      addLabel(THREE, root, output ? "PRESSED" : "IDLE", -1.5, 1.1, 0, 1.0);
+      return;
+    }
+    addContainer(THREE, root, -2.2, 0, value);
+    addDustPath(THREE, root, [[-1.7, 0], [-0.9, 0]], 0.06, output);
+    addComparator(THREE, root, -0.3, 0, output);
+    addDustPath(THREE, root, [[0.1, 0], [0.9, 0], [1.4, 0]], 0.06, output);
+    addLamp(THREE, root, 2, 0, output);
+    addLabel(THREE, root, `FILL ${value}%`, -2.2, 1.3, 0, 1.05);
+    return;
+  }
+
+  if (circuit.category === "Transport" || circuit.category === "Storage") {
+    addContainer(THREE, root, -2.5, 0, itemCount);
+    if (circuit.id.includes("dropper")) addDropper(THREE, root, -0.7, 0, sentCount > 0);
+    else addHopper(THREE, root, -0.7, 0.62, 0);
+    if (circuit.id === "dropper-elevator") {
+      addDropper(THREE, root, -0.7, -1.0, sentCount > 1);
+      addDropper(THREE, root, -0.7, 1.0, sentCount > 2);
+    }
+    if (circuit.id === "hopper-lock") addBlock(THREE, root, -0.7, -0.9, Boolean(props.locked));
+    addDustPath(THREE, root, [[-2.0, 0], [-1.35, 0], [-0.2, 0], [0.9, 0]], 0.06, sentCount > 0);
+    addContainer(THREE, root, 1.6, 0, sentCount);
+    addLabel(THREE, root, `${sentCount} MOVED`, 1.6, 1.35, 0, 1.05);
+    if (circuit.category === "Storage") {
+      addContainer(THREE, root, 1.6, -1.2, itemCount > 8 ? itemCount - 8 : 0);
+      addLabel(THREE, root, "OVERFLOW", 1.6, 1.25, -1.2, 1.0);
+    }
+    return;
+  }
+
+  if (circuit.category === "Pistons") {
+    addInput(THREE, root, -3, 0, Boolean(props.extended), "A");
+    const extended = Boolean(props.extended);
+    const isWideDoor = circuit.id === "piston-door-2x2";
+    const count = isWideDoor ? 4 : circuit.id === "slime-pusher" || circuit.id === "honey-separation" ? 3 : 1;
+    addPiston(THREE, root, -0.6, 0.28, 0, extended);
+    if (circuit.id === "honey-separation") {
+      box(THREE, root, 0.55 + (extended ? 0.45 : 0), 0.48, -0.55, 0.62, 0.62, 0.62, 0x91b660);
+      box(THREE, root, 0.55 + (extended ? 0.45 : 0), 0.48, 0.55, 0.62, 0.62, 0.62, 0xdaa84d);
+    } else {
+      for (let block = 0; block < count; block += 1) {
+        const dx = extended ? 1.35 + block * 0.7 : 0.55 + block * 0.7;
+        const z = isWideDoor ? -0.55 + (block % 2) * 1.1 : circuit.id === "slime-pusher" ? -0.8 + block * 0.8 : 0;
+        const y = isWideDoor ? 0.4 + Math.floor(block / 2) * 0.85 : 0.48;
+        const color = circuit.id === "slime-pusher" ? 0x91b660 : 0x7c826f;
+        box(THREE, root, dx, y, z, 0.72, 0.72, 0.72, color, { emissive: extended ? 0x334d27 : 0, intensity: extended ? 0.35 : 0 });
+      }
+    }
+    addLabel(THREE, root, extended ? "EXTENDED" : "RETRACTED", 1.2, 2.3, 0, 1.5);
+  }
+}
+
 function updateCircuit(engine: Engine, props: Props) {
   const { THREE, root } = engine;
+  const gate = props.gate ?? "AND";
   clearGroup(THREE, root);
-  if (props.clock) buildClockCircuit(THREE, root, props);
-  else if (props.gate === "NOT") buildNot(THREE, root, props.inputA, props.output);
-  else if (props.gate === "OR") buildOr(THREE, root, props.inputA, props.inputB, props.output);
-  else if (props.gate === "AND") buildAnd(THREE, root, props.inputA, props.inputB, props.output);
-  else if (props.gate === "NAND") buildAnd(THREE, root, props.inputA, props.inputB, props.output, true);
-  else if (props.gate === "NOR") buildOr(THREE, root, props.inputA, props.inputB, props.output, true);
-  else buildComposite(THREE, root, props.gate, props.inputA, props.inputB, props.output);
+  if (props.circuit) buildCatalogCircuit(THREE, root, props);
+  else if (props.clock) buildClockCircuit(THREE, root, props);
+  else if (gate === "NOT") buildNot(THREE, root, props.inputA, props.output);
+  else if (gate === "OR") buildOr(THREE, root, props.inputA, props.inputB, props.output);
+  else if (gate === "AND") buildAnd(THREE, root, props.inputA, props.inputB, props.output);
+  else if (gate === "NAND") buildAnd(THREE, root, props.inputA, props.inputB, props.output, true);
+  else if (gate === "NOR") buildOr(THREE, root, props.inputA, props.inputB, props.output, true);
+  else buildComposite(THREE, root, gate as "NAND" | "NOR" | "XOR", props.inputA, props.inputB, props.output);
   engine.render();
 }
 
@@ -508,7 +787,7 @@ export default function RedstoneCircuit3D(props: Props) {
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let pointerStart: { id: number; x: number; y: number } | undefined;
-        const inputAt = (event: PointerEvent): "A" | "B" | null => {
+        const inputAt = (event: PointerEvent): CircuitInput | null => {
           const rect = renderer.domElement.getBoundingClientRect();
           pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
           raycaster.setFromCamera(pointer, camera);
@@ -516,7 +795,7 @@ export default function RedstoneCircuit3D(props: Props) {
             let current: Object3D | null = intersection.object;
             while (current && current !== root) {
               const input = current.userData.input;
-              if (input === "A" || input === "B") return input;
+              if (input === "A" || input === "B" || input === "C" || input === "SEL") return input;
               current = current.parent;
             }
           }
@@ -603,41 +882,43 @@ export default function RedstoneCircuit3D(props: Props) {
 
   useEffect(() => {
     if (ready && engineRef.current) updateCircuit(engineRef.current, props);
-  }, [ready, props.gate, props.inputA, props.inputB, props.output, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
+  }, [ready, props.gate, props.circuit?.id, props.inputA, props.inputB, props.inputC, props.select, props.output, props.secondaryOutput, props.value, props.stored, props.itemCount, props.sentCount, props.locked, props.extended, props.pulse, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
 
-  const fallback = FALLBACKS[props.gate];
-  const circuitName = props.clock ? ({
+  const fallback = props.gate ? FALLBACKS[props.gate] : undefined;
+  const circuitName = props.circuit?.title ?? (props.clock ? ({
     "repeater-clock": "Repeater clock",
     "torch-clock": "Torch clock",
     "comparator-clock": "Comparator clock",
     "hopper-clock": "Two-hopper piston clock",
     "stoppable-clock": "Stoppable repeater clock",
-  } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate;
-  const formula = props.gate === "XOR" ? "(A OR B) AND NOT(A AND B)" : props.gate === "NAND" ? "AND → NOT" : "OR → NOT";
+  } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate ?? "Redstone circuit");
+  const gate = props.gate ?? "AND";
+  const formula = gate === "XOR" ? "(A OR B) AND NOT(A AND B)" : gate === "NAND" ? "AND → NOT" : "OR → NOT";
 
   return (
     <div className="redstone-3d-viewer">
       <div className="redstone-3d-toolbar">
-        <span className="redstone-kicker">LIVE WEB 3D · {circuitName}{!props.clock && (props.gate === "XOR" || props.gate === "NAND" || props.gate === "NOR") ? ` · ${formula}` : ""}</span>
+        <span className="redstone-kicker">LIVE WEB 3D · {circuitName}{!props.circuit && !props.clock && (gate === "XOR" || gate === "NAND" || gate === "NOR") ? ` · ${formula}` : ""}</span>
         <button className="small-button" type="button" onClick={() => engineRef.current?.reset()}>Reset view</button>
       </div>
       <div className="redstone-3d-frame" ref={hostRef}>
         <canvas ref={canvasRef} className={failed ? "redstone-3d-canvas hidden" : "redstone-3d-canvas"} aria-label={`Interactive 3D ${circuitName} circuit`} />
         {!ready && !failed && <div className="redstone-3d-overlay">Loading 3D circuit…</div>}
         {failed && <div className="redstone-3d-fallback">
-          {fallback ? <img src={`${import.meta.env.BASE_URL}redstone/${fallback.file}`} alt={fallback.alt} /> : <strong>{props.clock ? `${circuitName} preview` : formula}</strong>}
+          {fallback ? <img src={`${import.meta.env.BASE_URL}redstone/${fallback.file}`} alt={fallback.alt} /> : <strong>{props.circuit ? `${circuitName} · ${props.circuit.category}` : props.clock ? `${circuitName} preview` : formula}</strong>}
           <span>3D is unavailable in this browser. This is a static circuit reference.</span>
         </div>}
       </div>
       <div className="redstone-3d-legend">
         <span><i className="signal-dot" /> powered redstone dust</span>
-        {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : <>
+        {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : props.circuit ? <span><b>MODEL</b> {props.circuit.category}</span> : <>
           <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
-          {props.gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
+          {gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
         </>}
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
+        {(props.circuit?.id === "half-adder" || props.circuit?.id === "full-adder") && <span><b>CARRY</b> {props.secondaryOutput ? "1 · ON" : "0 · OFF"}</span>}
       </div>
-      <p className="redstone-3d-note">{props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} The 3D scene teaches signal flow; use the circuit link below for exact tested block placement. Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</p>
+      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. This 3D model illustrates the circuit; the linked layout gives exact tested block positions." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
     </div>
   );
 }

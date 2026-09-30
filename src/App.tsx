@@ -386,7 +386,7 @@ export default function App() {
         </> : <>
           <div className="eyebrow"><span className="eyebrow-dot" /> LEARN REDSTONE COMPUTING</div>
           <h1>Explore redstone,<br /><em>one signal at a time.</em></h1>
-          <p>Browse 60 Java circuits, from signal routing and logic gates to clocks, memory, transport, storage, and pistons.</p>
+          <p>Browse 59 Java circuits, from signal routing and logic gates to clocks, memory, transport, storage, and pistons.</p>
         </>}
       </section>
 

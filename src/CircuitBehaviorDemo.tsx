@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CircuitDefinition } from "./redstoneCircuits";
+
+const RedstoneCircuit3D = lazy(() => import("./RedstoneCircuit3D"));
 
 function logicResult(id: string, a: boolean, b: boolean, c: boolean, select: boolean) {
   if (id === "NOT") return !a;
@@ -12,6 +14,8 @@ function logicResult(id: string, a: boolean, b: boolean, c: boolean, select: boo
   if (id === "implication") return !a || b;
   if (id === "mux") return select ? b : a;
   if (id === "majority") return Number(a) + Number(b) + Number(c) >= 2;
+  if (id === "half-adder") return a !== b;
+  if (id === "full-adder") return (Number(a) + Number(b) + Number(c)) % 2 === 1;
   return false;
 }
 
@@ -42,7 +46,7 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
     pulseTimer.current = window.setTimeout(() => setPulseOn(false), duration);
   };
 
-  const isBinaryLogic = ["NOT", "OR", "AND", "NAND", "NOR", "XOR", "XNOR", "implication", "mux", "demux", "decoder", "majority", "full-adder"].includes(circuit.id);
+  const isBinaryLogic = ["NOT", "OR", "AND", "NAND", "NOR", "XOR", "XNOR", "implication", "mux", "demux", "decoder", "half-adder", "full-adder", "majority"].includes(circuit.id);
   const result = logicResult(circuit.id, a, b, c, select);
   const sum = Number(a) + Number(b) + Number(c);
   const decoderAddress = Number(a) * 2 + Number(b);
@@ -54,9 +58,86 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
   const fullAlarm = value >= 90;
   const emptyAlarm = value === 0;
   const comparatorOutput = circuit.id === "comparator-subtract" ? Math.max(0, value - 50) : Math.max(0, value - 40);
+  const modelOutput = isBinaryLogic
+    ? circuit.id === "decoder" || circuit.id === "demux" ? a : result
+    : circuit.category === "Signal" ? value > 0
+      : circuit.category === "Pulse" ? pulseOn
+        : isMemory ? Boolean(stored)
+          : isDetection ? circuit.id === "pressure-plate" ? value > 0
+            : circuit.id === "container-empty" ? emptyAlarm
+              : circuit.id === "container-full" ? fullAlarm
+                : circuit.id === "comparator-threshold" ? value >= 40
+                  : circuit.id === "comparator-subtract" ? value > 50
+                    : value > 0
+            : isTransfer ? sentCount > 0
+              : isPiston ? extended : false;
+  const secondaryOutput = circuit.id === "half-adder" ? a && b : circuit.id === "full-adder" ? sum >= 2 : false;
+
+  const onSceneInputToggle = (input: "A" | "B" | "C" | "SEL") => {
+    if (circuit.category === "Pulse" && input === "A") {
+      firePulse();
+      return;
+    }
+    if (circuit.category === "Pistons" && input === "A") {
+      setExtended((current) => !current);
+      return;
+    }
+    if (circuit.category === "Signal" && input === "A") {
+      setValue((current) => current === 0 ? 15 : 0);
+      return;
+    }
+    if (circuit.id === "pressure-plate" && input === "A") {
+      setValue((current) => current === 0 ? 15 : 0);
+      return;
+    }
+    if (circuit.id === "rs-latch") {
+      if (input === "A") setStored(1);
+      if (input === "B") setStored(0);
+      return;
+    }
+    if (circuit.id === "ripple-counter" && input === "A") {
+      setStored((current) => (current + 1) % 4);
+      return;
+    }
+    if ((circuit.id === "copper-bulb" || circuit.id === "piston-toggle") && input === "A") {
+      setStored((current) => current ? 0 : 1);
+      return;
+    }
+    if (circuit.id === "analog-memory" && input === "B") {
+      setStored((current) => Math.max(current, value));
+      return;
+    }
+    if ((circuit.id === "d-flip-flop" || circuit.id === "data-latch") && input === "B") {
+      if (circuit.id !== "data-latch" || !locked) setStored(a ? 1 : 0);
+      return;
+    }
+    if (input === "A") setA((current) => !current);
+    else if (input === "B") setB((current) => !current);
+    else if (input === "C") setC((current) => !current);
+    else setSelect((current) => !current);
+  };
 
   return <div className="circuit-explorer-demo">
-    <div className="circuit-demo-heading"><div><span className="redstone-kicker">INTERACTIVE BEHAVIOR MODEL</span><h3>{circuit.title}</h3><p>{circuit.summary}</p></div><span className="circuit-demo-badge">{circuit.category.toUpperCase()}</span></div>
+    <div className="circuit-demo-heading"><div><span className="redstone-kicker">INTERACTIVE 3D CIRCUIT</span><h3>{circuit.title}</h3><p>{circuit.summary}</p></div><span className="circuit-demo-badge">{circuit.category.toUpperCase()}</span></div>
+    <Suspense fallback={<div className="redstone-3d-loading">Loading 3D circuit…</div>}>
+      <RedstoneCircuit3D
+        circuit={circuit}
+        inputA={a}
+        inputB={b}
+        inputC={c}
+        select={select}
+        output={modelOutput}
+        secondaryOutput={secondaryOutput}
+        value={value}
+        stored={stored}
+        itemCount={itemCount}
+        sentCount={sentCount}
+        locked={locked}
+        extended={extended}
+        pulse={pulseOn}
+        onInputToggle={onSceneInputToggle}
+      />
+    </Suspense>
 
     {isBinaryLogic && <div className="circuit-sim-content">
       <div className="gate-switches">
@@ -68,7 +149,7 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
       </div>
       {circuit.id === "decoder" ? <div className="circuit-output-pair circuit-four-outputs">{[0, 1, 2, 3].map((index) => <div className={decoderAddress === index ? "lit" : ""} key={index}><span>LINE {index.toString(2).padStart(2, "0")}</span><strong>{decoderAddress === index ? 1 : 0}</strong></div>)}</div>
         : circuit.id === "demux" ? <div className="circuit-output-pair"><div className={!select && a ? "lit" : ""}><span>Y0</span><strong>{!select && a ? 1 : 0}</strong></div><div className={select && a ? "lit" : ""}><span>Y1</span><strong>{select && a ? 1 : 0}</strong></div></div>
-          : circuit.id === "full-adder" ? <div className="circuit-output-pair"><div className={(sum % 2) === 1 ? "lit" : ""}><span>SUM</span><strong>{sum % 2}</strong></div><div className={sum >= 2 ? "lit" : ""}><span>CARRY OUT</span><strong>{sum >= 2 ? 1 : 0}</strong></div></div>
+          : circuit.id === "half-adder" || circuit.id === "full-adder" ? <div className="circuit-output-pair"><div className={(sum % 2) === 1 ? "lit" : ""}><span>SUM</span><strong>{sum % 2}</strong></div><div className={sum >= 2 ? "lit" : ""}><span>CARRY OUT</span><strong>{sum >= 2 ? 1 : 0}</strong></div></div>
             : <div className={`circuit-model-output ${result ? "lit" : ""}`}><span>{circuit.id === "mux" ? `OUTPUT · D${select ? 1 : 0}` : "OUTPUT"}</span><strong>{result ? 1 : 0}</strong></div>}
       <p className="circuit-model-note">Toggle the inputs to see the circuit's logical result. This model shows behavior; use the linked layout for Minecraft block placement.</p>
     </div>}

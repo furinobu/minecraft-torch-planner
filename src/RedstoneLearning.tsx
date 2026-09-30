@@ -43,7 +43,7 @@ const CIRCUIT_GROUPS = [
 ];
 
 const DEDICATED_DEMOS = new Set([
-  "NOT", "OR", "AND", "NAND", "NOR", "XOR", "half-adder", "button-pulse", "rs-latch", "ripple-counter",
+  "NOT", "OR", "AND", "NAND", "NOR", "XOR",
   "repeater-clock", "torch-clock", "comparator-clock", "hopper-clock", "stoppable-clock", "ram", "cpu",
 ]);
 
@@ -70,9 +70,6 @@ export default function RedstoneLearning() {
   const [clockSpeed, setClockSpeed] = useState(20);
   const [clockEnabled, setClockEnabled] = useState(true);
   const [clockStopped, setClockStopped] = useState(false);
-  const [latchValue, setLatchValue] = useState(false);
-  const [counterValue, setCounterValue] = useState(0);
-  const [pulseOn, setPulseOn] = useState(false);
   const [address, setAddress] = useState(0);
   const [dataIn, setDataIn] = useState(5);
   const [memory, setMemory] = useState([0, 0, 0, 0]);
@@ -147,7 +144,7 @@ export default function RedstoneLearning() {
             {CIRCUIT_GROUPS.map((group) => <option key={group.name}>{group.name}</option>)}
           </select>
         </label>
-        <p className="redstone-library-count">{visibleCircuitGroups.reduce((total, group) => total + group.items.length, 0)} shown · 60 circuits + 2 lessons</p>
+        <p className="redstone-library-count">{visibleCircuitGroups.reduce((total, group) => total + group.items.length, 0)} shown · {REDSTONE_CIRCUITS.length} circuits + 2 lessons</p>
         <nav className="redstone-library-list" aria-label="Circuits">
           {visibleCircuitGroups.map((group) => <section className="redstone-library-group" key={group.name}>
             <h2>{group.name}</h2>
@@ -169,7 +166,7 @@ export default function RedstoneLearning() {
         <div className="redstone-intro-copy">
           <span className="redstone-kicker">JAVA REDSTONE · BUILDING COURSE</span>
           <h2>From one signal<br /><em>to a tiny computer.</em></h2>
-          <p>Explore 60 signal, logic, pulse, clock, memory, detection, transport, storage, and piston circuits. Each local preview shows the behavior; open its tested layout when you are ready to build.</p>
+          <p>Explore {REDSTONE_CIRCUITS.length} signal, logic, pulse, clock, memory, detection, transport, storage, and piston circuits. Each local preview shows the behavior; open its tested layout when you are ready to build.</p>
         </div>
         <nav className="redstone-lesson-nav" aria-label="Course lessons">
           <a href="#gates" onClick={() => selectCircuit("AND")}><span>01</span>Logic gates</a>
@@ -259,50 +256,12 @@ export default function RedstoneLearning() {
         </div>
       </section>}
 
-      {activeCircuit === "half-adder" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
-        <div className="redstone-section-title"><span className="redstone-step">LOGIC</span><div><span className="redstone-kicker">ADD TWO BITS</span><h2>Half adder</h2></div></div>
-        <p className="redstone-copy">Two inputs produce a Sum bit and a Carry bit. The sum is XOR; carry is AND.</p>
-        <div className="circuit-demo-card">
-          <div className="gate-switches">
-            <button className={`gate-switch ${inputA ? "on" : ""}`} onClick={() => setInputA((value) => !value)} aria-pressed={inputA}><span>A</span><b>{inputA ? "1 · ON" : "0 · OFF"}</b></button>
-            <button className={`gate-switch ${inputB ? "on" : ""}`} onClick={() => setInputB((value) => !value)} aria-pressed={inputB}><span>B</span><b>{inputB ? "1 · ON" : "0 · OFF"}</b></button>
-          </div>
-          <div className="circuit-output-pair"><div className={inputA !== inputB ? "lit" : ""}><span>SUM · A XOR B</span><strong>{inputA !== inputB ? 1 : 0}</strong></div><div className={inputA && inputB ? "lit" : ""}><span>CARRY · A AND B</span><strong>{inputA && inputB ? 1 : 0}</strong></div></div>
-          <table className="truth-table"><thead><tr><th>A</th><th>B</th><th>Sum</th><th>Carry</th></tr></thead><tbody>{[[0, 0], [0, 1], [1, 0], [1, 1]].map(([a, b]) => <tr className={inputA === (a === 1) && inputB === (b === 1) ? "current-row" : ""} key={`${a}-${b}`}><td>{a}</td><td>{b}</td><td>{a !== b ? 1 : 0}</td><td>{a && b ? 1 : 0}</td></tr>)}</tbody></table>
-          {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested half-adder layout ↗</a>}
-        </div>
-      </section>}
-
-      {activeCircuit === "rs-latch" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
-        <div className="redstone-section-title"><span className="redstone-step">MEMORY</span><div><span className="redstone-kicker">REMEMBER ONE BIT</span><h2>RS latch</h2></div></div>
-        <p className="redstone-copy">Set or reset the latch, then release the control. Feedback keeps Q at its last selected state.</p>
-        <div className="latch-demo circuit-demo-card">
-          <button className="small-button" type="button" onClick={() => setLatchValue(true)}>Set Q</button>
-          <div className={`latch-lamp ${latchValue ? "lit" : ""}`}><span>Q</span><strong>{latchValue ? 1 : 0}</strong></div>
-          <div className={`latch-lamp ${!latchValue ? "lit" : ""}`}><span>NOT Q</span><strong>{latchValue ? 0 : 1}</strong></div>
-          <button className="small-button" type="button" onClick={() => setLatchValue(false)}>Reset Q</button>
-          <a href="https://redstonery.com/circuits/rs-latch/" target="_blank" rel="noreferrer">Open the tested RS-latch layout ↗</a>
-        </div>
-      </section>}
-
-      {activeCircuit === "ripple-counter" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
-        <div className="redstone-section-title"><span className="redstone-step">MEMORY</span><div><span className="redstone-kicker">COUNT EVENTS</span><h2>Two-bit ripple counter</h2></div></div>
-        <p className="redstone-copy">Each count pulse advances one state. The two stored bits roll through 00, 01, 10, 11, then back to 00.</p>
-        <div className="counter-demo circuit-demo-card"><div className="counter-bits"><div className={counterValue & 2 ? "lit" : ""}><span>BIT 1</span><strong>{(counterValue >> 1) & 1}</strong></div><div className={counterValue & 1 ? "lit" : ""}><span>BIT 0</span><strong>{counterValue & 1}</strong></div></div><strong className="counter-decimal">{counterValue} / 3</strong><button className="small-button" type="button" onClick={() => setCounterValue((value) => (value + 1) % 4)}>Send count pulse</button><button className="clear-button" type="button" onClick={() => setCounterValue(0)}>Reset preview</button><a href="https://redstonery.com/circuits/pulse-counter/" target="_blank" rel="noreferrer">Open the tested counter layout ↗</a></div>
-      </section>}
-
-      {activeCircuit === "button-pulse" && <section className="redstone-section panel" data-circuit-id={activeCircuit}>
-        <div className="redstone-section-title"><span className="redstone-step">PULSE</span><div><span className="redstone-kicker">TURN A PRESS INTO AN EVENT</span><h2>Button pulse</h2></div></div>
-        <p className="redstone-copy">A button sends a short signal, then releases on its own. This preview shows a 10-game-tick (0.5 second) pulse.</p>
-        <div className="pulse-demo circuit-demo-card"><button className="small-button" type="button" disabled={pulseOn} onClick={() => { setPulseOn(true); window.setTimeout(() => setPulseOn(false), 500); }}>Press button</button><div className={`pulse-lamp ${pulseOn ? "lit" : ""}`}><span>OUTPUT</span><strong>{pulseOn ? "1 · PULSE" : "0 · OFF"}</strong></div><a href="https://redstonery.com/circuits/button-pulse/" target="_blank" rel="noreferrer">Open the tested button-pulse layout ↗</a></div>
-      </section>}
-
       {activeCircuitDefinition && !DEDICATED_DEMOS.has(activeCircuit) && <section className="redstone-section panel circuit-detail-section" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step circuit-category-step">{activeCircuitDefinition.category.toUpperCase()}</span><div><span className="redstone-kicker">CIRCUIT EXPLORER · JAVA</span><h2>{activeCircuitDefinition.title}</h2></div></div>
         <p className="redstone-copy">{activeCircuitDefinition.summary} Try the behavior model, then use the source layout for exact block positions and build instructions.</p>
         <div className="clock-specs circuit-specs"><span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span><span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
-        <CircuitBehaviorDemo circuit={activeCircuitDefinition} />
-        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested Minecraft layout ↗</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse all 60 Redstonery circuits ↗</a></div>
+        <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} />
+        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested Minecraft layout ↗</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>
       </section>}
 
       <section className="redstone-section panel" id="memory">
