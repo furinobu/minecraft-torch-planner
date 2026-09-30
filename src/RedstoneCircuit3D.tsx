@@ -188,15 +188,18 @@ function addLever(THREE: Three, root: Group, x: number, z: number, powered: bool
   lever.position.set(x, 0, z);
   lever.userData.input = inputId;
   root.add(lever);
-  box(THREE, lever, 0, 1.0, 0, 0.38, 0.08, 0.3, 0x62665b);
+  box(THREE, lever, 0, 1.0, 0, 0.38, 0.08, 0.3, powered ? 0x9b8054 : 0x62665b);
+  const handle = new THREE.Group();
+  handle.position.set(0, 1.07, 0);
+  handle.rotation.z = powered ? -0.78 : 0.78;
+  lever.add(handle);
   const bar = new THREE.Mesh(
     new THREE.CylinderGeometry(0.035, 0.052, 0.34, 6),
     new THREE.MeshStandardMaterial({ color: 0x92988a, roughness: 0.83 }),
   );
-  bar.position.set(0, 1.21, 0);
-  bar.rotation.z = powered ? -0.48 : 0.48;
-  lever.add(bar);
-  box(THREE, lever, powered ? 0.08 : -0.08, 1.3, 0, 0.12, 0.12, 0.12, powered ? 0xf1c16b : 0xa8afa0);
+  bar.position.set(0, 0.17, 0);
+  handle.add(bar);
+  box(THREE, handle, 0, 0.36, 0, 0.15, 0.15, 0.15, powered ? 0xffcc68 : 0xa8afa0);
   addLabel(THREE, root, `${label} ${powered ? 1 : 0}`, x, 1.65, z, 0.82);
 }
 
@@ -408,15 +411,13 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
   addInput(THREE, root, -4, -1.2, a, "A");
   addInput(THREE, root, -4, 1.2, b, "B");
   addDustPath(THREE, root, [[-3.5, -1.2], [-2.7, -1.2], [-2.1, -1.2]], 0.06, a);
-  addDustPath(THREE, root, [[-3.5, 1.2], [-2.7, 1.2], [-2.1, -1.2]], 0.13, b);
+  addDustPath(THREE, root, [[-3.5, 1.2], [-2.7, 1.2], [-2.1, 1.2]], 0.06, b);
   addModule(THREE, root, -1.6, -1.2, "OR", orOutput);
   addModule(THREE, root, -1.6, 1.2, "AND", andOutput);
-  addDustPath(THREE, root, [[-1.12, -1.2], [-0.45, -1.2], [0.15, 0]], 0.06, orOutput);
-  addDustPath(THREE, root, [[-1.12, 1.2], [-0.45, 1.2]], 0.06, andOutput);
+  addDustPath(THREE, root, [[-1.12, -1.2], [-0.45, -1.2], [0.15, -0.25], [0.95, -0.25], [2.25, -0.25]], 0.06, orOutput);
+  addDustPath(THREE, root, [[-1.12, 1.2], [0.08, 1.2]], 0.06, andOutput);
   addModule(THREE, root, 0.55, 1.2, "NOT", notAnd);
-  addDustPath(THREE, root, [[0.03, 1.2], [0.55, 1.2]], 0.06, andOutput);
-  addDustPath(THREE, root, [[1.02, -1.2], [1.75, -1.2], [2.25, 0]], 0.06, orOutput);
-  addDustPath(THREE, root, [[1.02, 1.2], [1.75, 1.2], [2.25, 0]], 0.13, notAnd);
+  addDustPath(THREE, root, [[1.02, 1.2], [1.75, 1.2], [2.25, 0.25]], 0.13, notAnd);
   addModule(THREE, root, 2.72, 0, "AND", output);
   addDustPath(THREE, root, [[3.2, 0], [3.97, 0]], 0.06, output);
   addLamp(THREE, root, 4.45, 0, output);
