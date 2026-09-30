@@ -202,7 +202,7 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate} gate</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Two lever lines meet on one dust path. Either lever can light the output lamp." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "Combine OR with an inverted AND: (A OR B) AND NOT(A AND B). The output is on when exactly one input is on."}</p></div>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate} gate</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Two lever lines meet on one dust path. Either lever can light the output lamp." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "XOR is on when its inputs differ. The 3D preview shows both inputs and the output; open the tested layout for its internal wiring."}</p></div>
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
               gate={gate}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Box3,
   BoxGeometry,
   CanvasTexture,
   Color,
@@ -22,6 +23,7 @@ import {
   SRGBColorSpace,
   Texture,
   Vector2,
+  Vector3,
   WebGLRenderer as ThreeWebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -30,6 +32,7 @@ import type { OrbitControls as OrbitControlsType } from "three/addons/controls/O
 import type { CircuitDefinition } from "./redstoneCircuits";
 
 const THREE = {
+  Box3,
   BoxGeometry,
   CanvasTexture,
   Color,
@@ -52,6 +55,7 @@ const THREE = {
   SRGBColorSpace,
   Texture,
   Vector2,
+  Vector3,
   WebGLRenderer: ThreeWebGLRenderer,
 };
 
@@ -91,6 +95,7 @@ type Engine = {
   controls: OrbitControlsType;
   root: Group;
   render: () => void;
+  fitView: () => void;
   reset: () => void;
 };
 
@@ -222,12 +227,12 @@ function addTorch(THREE: Three, root: Group, x: number, z: number, powered: bool
     powered ? 0xff7640 : 0x693c32, { emissive: powered ? 0xff3417 : 0, intensity: powered ? 1.5 : 0 });
 }
 
-function addLamp(THREE: Three, root: Group, x: number, z: number, powered: boolean) {
+function addLamp(THREE: Three, root: Group, x: number, z: number, powered: boolean, label = "OUT") {
   box(THREE, root, x, 0.48, z, 0.82, 0.86, 0.82, powered ? 0xffd36c : 0x66523a, {
     emissive: powered ? 0xffa829 : 0,
     intensity: powered ? 1.45 : 0,
   });
-  addLabel(THREE, root, `OUT ${powered ? 1 : 0}`, x, 1.18, z, 1.08);
+  addLabel(THREE, root, `${label} ${powered ? 1 : 0}`, x, 1.18, z, 1.08);
 }
 
 function addDustPath(THREE: Three, root: Group, points: Point[], y: number, powered: boolean) {
@@ -335,10 +340,12 @@ function buildOr(THREE: Three, root: Group, a: boolean, b: boolean, output: bool
   addInput(THREE, root, -3.1, zb, b, "B");
   addRepeater(THREE, root, -1.55, za, a);
   addRepeater(THREE, root, -1.55, zb, b);
-  const branchA = [[-2.6, za], [-1.55, za], [-0.55, za], [0, za], [0, 0], [0.75, 0], [1.45, 0]] as Point[];
-  const branchB = [[-2.6, zb], [-1.55, zb], [-0.55, zb], [0, zb], [0, 0], [0.75, 0], [1.45, 0]] as Point[];
-  addDustPath(THREE, root, branchA, 0.06, a);
-  addDustPath(THREE, root, branchB, 0.06, b);
+  const repeaterLeft = -1.55 - 0.36 - 0.085;
+  const repeaterRight = -1.55 + 0.36 + 0.085;
+  addDustPath(THREE, root, [[-2.6, za], [repeaterLeft, za]], 0.06, a);
+  addDustPath(THREE, root, [[repeaterRight, za], [-0.55, za], [0, za], [0, 0], [0.75, 0], [1.45, 0]], 0.06, a);
+  addDustPath(THREE, root, [[-2.6, zb], [repeaterLeft, zb]], 0.06, b);
+  addDustPath(THREE, root, [[repeaterRight, zb], [-0.55, zb], [0, zb], [0, 0], [0.75, 0], [1.45, 0]], 0.06, b);
   if (!invert) {
     addDustPath(THREE, root, [[1.45, 0], [2.2, 0]], 0.06, output);
     addLamp(THREE, root, 2.65, 0, output);
@@ -382,8 +389,8 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
     const andOutput = a && b;
     addInput(THREE, root, -3.7, -1.1, a, "A");
     addInput(THREE, root, -3.7, 1.1, b, "B");
-    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-1.7, 0]], 0.06, a);
-    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-1.7, 0]], 0.06, b);
+    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
+    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "AND", andOutput);
     addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, andOutput);
     addModule(THREE, root, 1.05, 0, "NOT", output);
@@ -395,8 +402,8 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
     const orOutput = a || b;
     addInput(THREE, root, -3.7, -1.1, a, "A");
     addInput(THREE, root, -3.7, 1.1, b, "B");
-    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-1.7, 0]], 0.06, a);
-    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-1.7, 0]], 0.06, b);
+    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
+    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
     addModule(THREE, root, -0.9, 0, "OR", orOutput);
     addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, orOutput);
     addModule(THREE, root, 1.05, 0, "NOT", output);
@@ -405,22 +412,14 @@ function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR",
     return;
   }
 
-  const orOutput = a || b;
-  const andOutput = a && b;
-  const notAnd = !andOutput;
-  addInput(THREE, root, -4, -1.2, a, "A");
-  addInput(THREE, root, -4, 1.2, b, "B");
-  addDustPath(THREE, root, [[-3.5, -1.2], [-2.7, -1.2], [-2.1, -1.2]], 0.06, a);
-  addDustPath(THREE, root, [[-3.5, 1.2], [-2.7, 1.2], [-2.1, 1.2]], 0.06, b);
-  addModule(THREE, root, -1.6, -1.2, "OR", orOutput);
-  addModule(THREE, root, -1.6, 1.2, "AND", andOutput);
-  addDustPath(THREE, root, [[-1.12, -1.2], [-0.45, -1.2], [0.15, -0.25], [0.95, -0.25], [2.25, -0.25]], 0.06, orOutput);
-  addDustPath(THREE, root, [[-1.12, 1.2], [0.08, 1.2]], 0.06, andOutput);
-  addModule(THREE, root, 0.55, 1.2, "NOT", notAnd);
-  addDustPath(THREE, root, [[1.02, 1.2], [1.75, 1.2], [2.25, 0.25]], 0.13, notAnd);
-  addModule(THREE, root, 2.72, 0, "AND", output);
-  addDustPath(THREE, root, [[3.2, 0], [3.97, 0]], 0.06, output);
-  addLamp(THREE, root, 4.45, 0, output);
+  addInput(THREE, root, -3, -1.1, a, "A");
+  addInput(THREE, root, -3, 1.1, b, "B");
+  addDustPath(THREE, root, [[-2.5, -1.1], [-1.5, -1.1], [-1.5, -0.25], [-0.555, -0.25]], 0.06, a);
+  addDustPath(THREE, root, [[-2.5, 1.1], [-1.5, 1.1], [-1.5, 0.25], [-0.555, 0.25]], 0.06, b);
+  addModule(THREE, root, 0, 0, "XOR", output);
+  addDustPath(THREE, root, [[0.555, 0], [1.35, 0], [2.305, 0]], 0.06, output);
+  addLamp(THREE, root, 2.8, 0, output);
+  return;
 }
 
 function buildClockCircuit(THREE: Three, root: Group, props: Props) {
@@ -552,37 +551,44 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
       addInput(THREE, root, -3.4, -1.15, a, "A");
       addInput(THREE, root, -3.4, 1.15, b, "B");
       if (circuit.id === "full-adder") addInput(THREE, root, -1.7, 2.25, c, "C", "C");
-      addDustPath(THREE, root, [[-2.9, -1.15], [-1.9, -1.15], [-1.05, -1.15]], 0.06, a);
-      addDustPath(THREE, root, [[-2.9, 1.15], [-1.9, 1.15], [-1.05, 1.15]], 0.06, b);
-      addModule(THREE, root, -0.45, -1.15, "XOR", output);
-      addModule(THREE, root, -0.45, 1.15, "AND", secondary);
-      if (circuit.id === "full-adder") addModule(THREE, root, 1.0, 0, "CARRY", secondary);
-      addLamp(THREE, root, 2.55, -1.15, output);
-      addLamp(THREE, root, 2.55, 1.15, secondary);
-      addLabel(THREE, root, "SUM", 2.55, 1.25, -1.15, 0.8);
-      addLabel(THREE, root, "CARRY", 2.55, 1.25, 1.15, 0.95);
+      addDustPath(THREE, root, [[-2.9, -1.15], [-1.4, -1.15], [-1.4, -0.25], [-1.005, -0.25]], 0.06, a);
+      addDustPath(THREE, root, [[-2.9, 1.15], [-1.4, 1.15], [-1.4, 0.25], [-1.005, 0.25]], 0.06, b);
+      if (circuit.id === "full-adder") {
+        addDustPath(THREE, root, [[-1.145, 2.25], [-0.2, 2.25], [-0.2, 0.555]], 0.06, c);
+      }
+      addModule(THREE, root, -0.45, 0, circuit.id === "full-adder" ? "FULL ADDER" : "HALF ADDER", output || secondary);
+      addDustPath(THREE, root, [[0.105, -0.25], [0.7, -0.25], [0.7, -1.15], [2.055, -1.15]], 0.06, output);
+      addDustPath(THREE, root, [[0.105, 0.25], [0.7, 0.25], [0.7, 1.15], [2.055, 1.15]], 0.06, secondary);
+      addLamp(THREE, root, 2.55, -1.15, output, "SUM");
+      addLamp(THREE, root, 2.55, 1.15, secondary, "CARRY");
       return;
     }
     if (circuit.id === "decoder") {
       addInput(THREE, root, -3.2, -0.8, a, "A");
       addInput(THREE, root, -3.2, 0.8, b, "B");
       const address = Number(a) * 2 + Number(b);
+      addDustPath(THREE, root, [[-2.7, -0.8], [-1.9, -0.8], [-1.9, -0.25], [-1.255, -0.25]], 0.06, a);
+      addDustPath(THREE, root, [[-2.7, 0.8], [-1.9, 0.8], [-1.9, 0.25], [-1.255, 0.25]], 0.06, b);
+      addModule(THREE, root, -0.7, 0, `DEC ${address}`, true);
       for (let line = 0; line < 4; line += 1) {
         const z = -1.8 + line * 1.2;
-        addDustPath(THREE, root, [[-2.7, 0], [-1.7, 0], [-0.8, z], [0.3, z]], 0.06, address === line);
-        addLamp(THREE, root, 1.25, z, address === line);
-        addLabel(THREE, root, `Y${line}`, 1.25, 1.2, z, 0.55);
+        const portZ = -0.36 + line * 0.24;
+        const routeX = -0.05 + line * 0.15;
+        addDustPath(THREE, root, [[-0.145, portZ], [routeX, portZ], [routeX, z], [0.755, z]], 0.06, address === line);
+        addLamp(THREE, root, 1.25, z, address === line, `Y${line}`);
       }
       return;
     }
     if (circuit.id === "demux") {
       addInput(THREE, root, -3.2, 0, a, "A");
       addInput(THREE, root, -1.9, 2.0, selected, "SEL", "SEL");
-      addDustPath(THREE, root, [[-2.7, 0], [-1.2, 0], [0, 0], [0.7, selected ? 1.2 : -1.2], [1.3, selected ? 1.2 : -1.2]], 0.06, a);
-      addLamp(THREE, root, 1.9, -1.2, a && !selected);
-      addLamp(THREE, root, 1.9, 1.2, a && selected);
-      addLabel(THREE, root, "Y0", 1.9, 1.15, -1.2, 0.6);
-      addLabel(THREE, root, "Y1", 1.9, 1.15, 1.2, 0.6);
+      addDustPath(THREE, root, [[-2.7, 0], [-1.4, 0], [-1.4, -0.25], [-0.455, -0.25]], 0.06, a);
+      addDustPath(THREE, root, [[-1.345, 2.0], [0.2, 2.0], [0.2, 0.555]], 0.06, selected);
+      addModule(THREE, root, 0.1, 0, "DEMUX", a);
+      addDustPath(THREE, root, [[0.655, -0.25], [0.9, -0.25], [0.9, -1.2], [1.405, -1.2]], 0.06, a && !selected);
+      addDustPath(THREE, root, [[0.655, 0.25], [1.05, 0.25], [1.05, 1.2], [1.405, 1.2]], 0.06, a && selected);
+      addLamp(THREE, root, 1.9, -1.2, a && !selected, "Y0");
+      addLamp(THREE, root, 1.9, 1.2, a && selected, "Y1");
       return;
     }
     addInput(THREE, root, -3.2, -1.1, a, circuit.id === "mux" ? "D0" : "A", "A");
@@ -590,10 +596,14 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     if (circuit.id === "majority") addInput(THREE, root, -1.9, 2.4, c, "C", "C");
     if (circuit.id === "mux") addInput(THREE, root, -1.9, 2.4, selected, "SEL", "SEL");
     const logicName = circuit.id === "implication" ? "A→B" : circuit.title.replace(" gate", "").slice(0, 8).toUpperCase();
-    addDustPath(THREE, root, [[-2.7, -1.1], [-1.5, -1.1], [-0.7, 0]], 0.06, a);
-    addDustPath(THREE, root, [[-2.7, 1.1], [-1.5, 1.1], [-0.7, 0]], 0.06, b);
+    addDustPath(THREE, root, [[-2.7, -1.1], [-1.5, -1.1], [-1.5, -0.25], [-0.455, -0.25]], 0.06, a);
+    addDustPath(THREE, root, [[-2.7, 1.1], [-1.5, 1.1], [-1.5, 0.25], [-0.455, 0.25]], 0.06, b);
+    if (circuit.id === "majority" || circuit.id === "mux") {
+      const control = circuit.id === "mux" ? selected : c;
+      addDustPath(THREE, root, [[-1.345, 2.4], [-0.1, 2.4], [-0.1, 0.555]], 0.06, control);
+    }
     addModule(THREE, root, 0.1, 0, logicName, output);
-    addDustPath(THREE, root, [[0.58, 0], [1.45, 0]], 0.06, output);
+    addDustPath(THREE, root, [[0.655, 0], [1.605, 0]], 0.06, output);
     addLamp(THREE, root, 2.1, 0, output);
     return;
   }
@@ -723,7 +733,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
   }
 }
 
-function updateCircuit(engine: Engine, props: Props) {
+function updateCircuit(engine: Engine, props: Props, shouldFitView: boolean) {
   const { THREE, root } = engine;
   const gate = props.gate ?? "AND";
   clearGroup(THREE, root);
@@ -735,7 +745,8 @@ function updateCircuit(engine: Engine, props: Props) {
   else if (gate === "NAND") buildAnd(THREE, root, props.inputA, props.inputB, props.output, true);
   else if (gate === "NOR") buildOr(THREE, root, props.inputA, props.inputB, props.output, true);
   else buildComposite(THREE, root, gate as "NAND" | "NOR" | "XOR", props.inputA, props.inputB, props.output);
-  engine.render();
+  if (shouldFitView) engine.fitView();
+  else engine.render();
 }
 
 export default function RedstoneCircuit3D(props: Props) {
@@ -745,6 +756,7 @@ export default function RedstoneCircuit3D(props: Props) {
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const onInputToggleRef = useRef(props.onInputToggle);
+  const sceneKeyRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     onInputToggleRef.current = props.onInputToggle;
@@ -778,13 +790,48 @@ export default function RedstoneCircuit3D(props: Props) {
         controls.target.set(0, 0.45, 0);
         controls.enableDamping = false;
         controls.enablePan = false;
-        controls.minZoom = 0.72;
+        controls.minZoom = 0.25;
         controls.maxZoom = 2.4;
 
         const root = new THREE.Group();
         scene.add(root);
         const render = () => renderer.render(scene, camera);
         controls.addEventListener("change", render);
+        const fitView = () => {
+          camera.zoom = 1;
+          const bounds = new THREE.Box3().setFromObject(root);
+          if (bounds.isEmpty()) {
+            controls.target.set(0, 0.45, 0);
+            camera.position.set(8, 8, 8);
+            camera.lookAt(controls.target);
+            camera.updateProjectionMatrix();
+            render();
+            return;
+          }
+
+          const center = bounds.getCenter(new THREE.Vector3());
+          camera.position.set(center.x + 8, center.y + 8, center.z + 8);
+          camera.lookAt(center);
+          controls.target.copy(center);
+          camera.updateProjectionMatrix();
+          camera.updateMatrixWorld();
+          const corners = [
+            new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
+            new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.max.z),
+            new THREE.Vector3(bounds.min.x, bounds.max.y, bounds.min.z),
+            new THREE.Vector3(bounds.min.x, bounds.max.y, bounds.max.z),
+            new THREE.Vector3(bounds.max.x, bounds.min.y, bounds.min.z),
+            new THREE.Vector3(bounds.max.x, bounds.min.y, bounds.max.z),
+            new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.min.z),
+            new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z),
+          ];
+          const maxX = Math.max(...corners.map((point) => Math.abs(point.project(camera).x)));
+          const maxY = Math.max(...corners.map((point) => Math.abs(point.project(camera).y)));
+          camera.zoom = Math.max(controls.minZoom, Math.min(0.78, 0.72 / maxX, 0.72 / maxY));
+          camera.updateProjectionMatrix();
+          controls.update();
+          render();
+        };
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let pointerStart: { id: number; x: number; y: number } | undefined;
@@ -829,17 +876,9 @@ export default function RedstoneCircuit3D(props: Props) {
           renderer.domElement.removeEventListener("pointermove", onPointerMove);
           renderer.domElement.removeEventListener("pointercancel", onPointerCancel);
         };
-        const reset = () => {
-          camera.position.set(8, 8, 8);
-          camera.zoom = 1;
-          camera.lookAt(0, 0.45, 0);
-          camera.updateProjectionMatrix();
-          controls.target.set(0, 0.45, 0);
-          controls.update();
-          render();
-        };
+        const reset = fitView;
 
-        engine = { THREE, renderer, scene, camera, controls, root, render, reset };
+        engine = { THREE, renderer, scene, camera, controls, root, render, fitView, reset };
         engineRef.current = engine;
 
         const resize = () => {
@@ -856,7 +895,8 @@ export default function RedstoneCircuit3D(props: Props) {
           camera.bottom = -viewHeight / 2;
           camera.updateProjectionMatrix();
           renderer.setSize(width, height, false);
-          render();
+          if (root.children.length) fitView();
+          else render();
         };
         observer = new ResizeObserver(resize);
         observer.observe(hostRef.current);
@@ -882,7 +922,12 @@ export default function RedstoneCircuit3D(props: Props) {
   }, []);
 
   useEffect(() => {
-    if (ready && engineRef.current) updateCircuit(engineRef.current, props);
+    if (ready && engineRef.current) {
+      const sceneKey = props.circuit?.id ?? props.clock ?? props.gate ?? "AND";
+      const shouldFitView = sceneKeyRef.current !== sceneKey;
+      sceneKeyRef.current = sceneKey;
+      updateCircuit(engineRef.current, props, shouldFitView);
+    }
   }, [ready, props.gate, props.circuit?.id, props.inputA, props.inputB, props.inputC, props.select, props.output, props.secondaryOutput, props.value, props.stored, props.itemCount, props.sentCount, props.locked, props.extended, props.pulse, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
 
   const fallback = props.gate ? FALLBACKS[props.gate] : undefined;
