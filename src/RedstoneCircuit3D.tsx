@@ -215,17 +215,24 @@ function addInput(THREE: Three, root: Group, x: number, z: number, powered: bool
   addLever(THREE, root, x, z, powered, label, inputId);
 }
 
-function addTorch(THREE: Three, root: Group, x: number, z: number, powered: boolean, wall = false, baseY = 1) {
-  const y = wall ? 0.42 : baseY + 0.18;
-  const stickX = wall ? x + 0.08 : x;
+function addTorch(THREE: Three, root: Group, x: number, z: number, powered: boolean, wall = false, baseY = 1, facing = "east", mountOffset = 0.53) {
+  const angle = logicFacingAngle(facing);
+  const forwardX = Math.cos(angle);
+  const forwardZ = -Math.sin(angle);
+  const lean = wall ? 0.38 : 0;
   const rod = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.06, 0.34, 6),
     new THREE.MeshStandardMaterial({ color: 0x805333, roughness: 1 }),
   );
-  rod.position.set(stickX, y, z);
-  rod.rotation.z = wall ? -0.38 : 0;
+  rod.position.set(x - forwardX * (wall ? mountOffset : 0), wall ? 0.42 : baseY + 0.17, z - forwardZ * (wall ? mountOffset : 0));
+  if (wall) {
+    rod.rotation.z = -forwardX * lean;
+    rod.rotation.x = forwardZ * lean;
+  }
   root.add(rod);
-  box(THREE, root, wall ? x + 0.12 : x, wall ? y + 0.2 : y + 0.2, z, 0.17, 0.12, 0.17,
+  const tipOffset = 0.17 * Math.sin(lean);
+  const tipY = rod.position.y + 0.19 * Math.cos(lean);
+  box(THREE, root, rod.position.x + forwardX * tipOffset, tipY, rod.position.z + forwardZ * tipOffset, 0.17, 0.12, 0.17,
     powered ? 0xff7640 : 0x693c32, { emissive: powered ? 0xff3417 : 0, intensity: powered ? 1.5 : 0 });
 }
 
@@ -304,7 +311,7 @@ function addPiston(THREE: Three, root: Group, x: number, y: number, z: number, e
   box(THREE, root, x, y + 0.22, z, 0.38, extended ? 0.45 : 0.12, 0.38, 0x89916a);
 }
 
-const LOGIC_CELL = 0.9;
+const LOGIC_CELL = 1;
 const LOGIC_LAYER = 0.92;
 
 function logicFacingAngle(facing = "east") {
@@ -323,7 +330,7 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 }
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number) {
-  box(THREE, root, x, y + 0.46, z, 0.86, 0.92, 0.86, 0x777c77);
+  box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, 0x777c77);
 }
 
 function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string) {
@@ -351,15 +358,21 @@ function addLayoutTorch(THREE: Three, root: Group, x: number, y: number, z: numb
   const angle = logicFacingAngle(facing);
   const forwardX = Math.cos(angle);
   const forwardZ = -Math.sin(angle);
-  const offset = wall ? 0.15 : 0;
+  const offset = wall ? 0.52 : 0;
+  const lean = wall ? 0.38 : 0;
   const rod = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.06, 0.34, 6),
     new THREE.MeshStandardMaterial({ color: 0x805333, roughness: 1 }),
   );
-  rod.position.set(x - forwardX * offset, y + 0.34, z - forwardZ * offset);
-  if (wall) rod.rotation.z = -0.38;
+  rod.position.set(x - forwardX * offset, y + (wall ? 0.34 : 0.17), z - forwardZ * offset);
+  if (wall) {
+    rod.rotation.z = -forwardX * lean;
+    rod.rotation.x = forwardZ * lean;
+  }
   root.add(rod);
-  box(THREE, root, rod.position.x, y + 0.53, rod.position.z, 0.17, 0.12, 0.17,
+  const tipOffset = 0.17 * Math.sin(lean);
+  const tipY = rod.position.y + 0.19 * Math.cos(lean);
+  box(THREE, root, rod.position.x + forwardX * tipOffset, tipY, rod.position.z + forwardZ * tipOffset, 0.17, 0.12, 0.17,
     powered ? 0xff7640 : 0x693c32, { emissive: powered ? 0xff3417 : 0, intensity: powered ? 1.2 : 0 });
 }
 
@@ -368,7 +381,7 @@ function addLayoutRepeater(THREE: Three, root: Group, x: number, y: number, z: n
   component.position.set(x, y + 0.06, z);
   component.rotation.y = logicFacingAngle(facing);
   root.add(component);
-  box(THREE, component, 0, 0.035, 0, 0.78, 0.12, 0.48, 0x9a9b8e);
+  box(THREE, component, 0, 0.035, 0, 0.96, 0.12, 0.48, 0x9a9b8e);
   box(THREE, component, 0, 0.105, 0, comparator ? 0.42 : 0.5, 0.035, 0.09,
     powered ? 0xff4936 : 0x5d2420, { outline: false });
   const postXs = comparator ? [-0.2, 0, 0.2] : [-0.18, 0.18];
@@ -490,12 +503,24 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   if (!parts) return false;
   const maxX = Math.max(...parts.map((part) => part.x));
   const maxZ = Math.max(...parts.map((part) => part.z));
-  const offsetX = maxX / 2;
-  const offsetZ = maxZ / 2;
+  const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
+  const offsetZ = maxZ / 2 - (maxZ % 2 === 0 ? 0.5 : 0);
   const stoneCells = new Set(parts.filter((part) => part.kind === "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
-  const redstoneCells = new Set(parts.filter((part) => part.kind !== "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
   const dustByCell = new Map(parts.filter((part) => part.kind === "dust").map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
-  const hasWireContact = (key: string) => redstoneCells.has(key) || stoneCells.has(key);
+  const partsByCell = new Map<string, LogicLayoutPart[]>();
+  for (const part of parts) {
+    const key = `${part.layer}:${part.x}:${part.z}`;
+    partsByCell.set(key, [...(partsByCell.get(key) ?? []), part]);
+  }
+  const wireContactLength = (key: string, dx: number, dz: number) => {
+    const contacts = partsByCell.get(key) ?? [];
+    if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp")) return 0.52;
+    const component = contacts.find((part) => part.kind === "repeater" || part.kind === "comparator");
+    if (!component) return null;
+    const runsAlongX = component.facing !== "north" && component.facing !== "south";
+    const alongComponent = dx !== 0 ? runsAlongX : dz !== 0 && !runsAlongX;
+    return 1 - (alongComponent ? 0.48 : 0.24);
+  };
   const inputs: Record<string, boolean> = {
     A: props.inputA,
     B: props.inputB,
@@ -528,7 +553,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     }
     if (part.kind === "lamp") {
       const powered = lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;
-      box(THREE, root, x, y + 0.46, z, 0.82, 0.86, 0.82, powered ? 0xffd36c : 0x66523a, {
+      box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, powered ? 0xffd36c : 0x66523a, {
         emissive: powered ? 0xffa829 : 0,
         intensity: powered ? 1.45 : 0,
       });
@@ -555,30 +580,42 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       const neighborPowered = logicDustPowered(dustByCell.get(eastKey)!, props, circuitId);
       segment(1, 0, 1, powered || neighborPowered);
     }
-    else if (hasWireContact(eastKey)) segment(1, 0, 0.52);
+    else {
+      const contactLength = wireContactLength(eastKey, 1, 0);
+      if (contactLength !== null) segment(1, 0, contactLength);
+    }
     const westKey = `${part.layer}:${part.x - 1}:${part.z}`;
-    if (!dustByCell.has(westKey) && hasWireContact(westKey)) segment(-1, 0, 0.52);
+    if (!dustByCell.has(westKey)) {
+      const contactLength = wireContactLength(westKey, -1, 0);
+      if (contactLength !== null) segment(-1, 0, contactLength);
+    }
     if (dustByCell.has(southKey)) {
       const neighborPowered = logicDustPowered(dustByCell.get(southKey)!, props, circuitId);
       segment(0, 1, 1, powered || neighborPowered);
     }
-    else if (hasWireContact(southKey)) segment(0, 1, 0.52);
+    else {
+      const contactLength = wireContactLength(southKey, 0, 1);
+      if (contactLength !== null) segment(0, 1, contactLength);
+    }
     const northKey = `${part.layer}:${part.x}:${part.z - 1}`;
-    if (!dustByCell.has(northKey) && hasWireContact(northKey)) segment(0, -1, 0.52);
+    if (!dustByCell.has(northKey)) {
+      const contactLength = wireContactLength(northKey, 0, -1);
+      if (contactLength !== null) segment(0, -1, contactLength);
+    }
   }
   return true;
 }
 
 function addGround(THREE: Three, scene: Scene) {
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(64, 32),
+    new THREE.PlaneGeometry(64, 64),
     new THREE.MeshStandardMaterial({ color: 0x283427, roughness: 1, metalness: 0 }),
   );
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.13;
+  ground.position.y = -0.02;
   scene.add(ground);
   const grid = new THREE.GridHelper(64, 64, 0x58634b, 0x394433);
-  grid.position.y = -0.115;
+  grid.position.y = -0.01;
   scene.add(grid);
 }
 
@@ -608,7 +645,7 @@ function buildClockCircuit(THREE: Three, root: Group, props: Props) {
     addBlock(THREE, root, 3, 1);
     addTorch(THREE, root, -2, -2, running, true);
     addTorch(THREE, root, 2, -2, !running, true);
-    addTorch(THREE, root, 3, 2, running, true);
+    addTorch(THREE, root, 3, 2, running, true, 1, "south");
     addDustPath(THREE, root, [[-1.5, -2], [-1, -2], [0, -2], [1, -2]], 0.06, running);
     addDustPath(THREE, root, [[2.5, -2], [3, -2], [3, -1], [3, 0], [3, 0.5]], 0.06, !running);
     addDustPath(THREE, root, [[2.5, 2], [2, 2], [1, 2], [0, 2], [-1, 2], [-2, 2], [-3, 2], [-3, 1], [-3, 0], [-3, -1], [-3, -2]], 0.06, running);
@@ -667,7 +704,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     if (circuit.id === "torch-tower") {
       for (let level = 0; level < 4; level += 1) {
         const y = 0.55 + level * 0.65;
-        addTorch(THREE, root, level % 2 === 0 ? -0.45 : 0.45, 0, level % 2 === 0 ? output : !output, false, y);
+        addTorch(THREE, root, level % 2 === 0 ? -0.45 : 0.45, 0, level % 2 === 0 ? output : !output, false, y + 0.48);
         box(THREE, root, 0, y, 0, 0.94, 0.96, 0.94, 0x777c77);
       }
       addInput(THREE, root, -2.6, 0, a, "A");
@@ -718,7 +755,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
         const powered = Boolean(stored & (1 << bit));
         const z = -1.8 + bit * 1.2;
         addBlock(THREE, root, 0, z, powered);
-        addTorch(THREE, root, 0.7, z, powered, true);
+        addTorch(THREE, root, 0.7, z, powered, true, 1, "east", 0.23);
         addLamp(THREE, root, 2, z, powered);
         addLabel(THREE, root, `BIT ${bit}`, 2, 1.15, z, 0.9);
       }
@@ -752,7 +789,7 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     addDustPath(THREE, root, [[-2.5, -1.1], [-1.6, -1.1], [-0.6, -1.1], [0.2, 0]], 0.06, output);
     addDustPath(THREE, root, [[-2.5, 1.1], [-1.6, 1.1], [-0.6, 1.1], [0.2, 0]], 0.06, !output);
     addBlock(THREE, root, 0.5, 0, output);
-    addTorch(THREE, root, 1.0, -0.2, !output, true);
+    addTorch(THREE, root, 1.0, -0.2, !output, true, 1, "east", 0.03);
     addLamp(THREE, root, 2.2, -1, output);
     addLamp(THREE, root, 2.2, 1, !output);
     addLabel(THREE, root, output ? "Q 1" : "Q 0", 2.2, 1.4, -1, 0.85);
