@@ -29,14 +29,13 @@ export type CircuitDefinition = {
 // explain each circuit's behavior; the source links show its tested block layout.
 export const REDSTONE_CIRCUITS: CircuitDefinition[] = [
   { id: "repeater-line", category: "Signal", title: "Repeater restores", summary: "Separate restoring signal strength from delaying a signal.", path: "repeater-line", width: 7, depth: 1, layers: 1 },
-  { id: "diode-branch", category: "Signal", title: "Isolated OR branches", summary: "Keep a branch from driving backward into its source.", path: "diode-branch", width: 6, depth: 3, layers: 1 },
   { id: "dust-staircase", category: "Signal", title: "Dust staircase", summary: "Carry a signal between heights while checking support and clearance.", path: "dust-staircase", width: 9, depth: 1, layers: 5 },
   { id: "torch-tower", category: "Signal", title: "Vertical torch tower", summary: "Combine vertical routing with repeated inversion.", path: "torch-tower", width: 5, depth: 1, layers: 6 },
   { id: "wire-bridge", category: "Signal", title: "Independent wire bridge", summary: "Cross two routes without accidentally joining their signals.", path: "wire-bridge", width: 9, depth: 9, layers: 4 },
   { id: "strong-power", category: "Signal", title: "Power through a solid block", summary: "Distinguish a powered block from a block that passes the needed signal onward.", path: "strong-power", width: 5, depth: 4, layers: 1 },
 
   { id: "NOT", category: "Logic", title: "NOT gate", summary: "Invert one decision.", path: "not", width: 6, depth: 1, layers: 1 },
-  { id: "OR", category: "Logic", title: "OR gate", summary: "Let either control enable an output.", path: "or", width: 5, depth: 3, layers: 1 },
+  { id: "OR", category: "Logic", title: "OR gate (isolated)", summary: "Repeaters isolate both inputs before they meet at the output.", path: "or", width: 5, depth: 3, layers: 1 },
   { id: "NOR", category: "Logic", title: "NOR gate", summary: "Detect that no input is active.", path: "nor", width: 8, depth: 3, layers: 1 },
   { id: "AND", category: "Logic", title: "AND gate", summary: "Require two conditions at the same time.", path: "and", width: 6, depth: 3, layers: 2 },
   { id: "NAND", category: "Logic", title: "NAND gate", summary: "Make the both-active state the only off state.", path: "nand", width: 4, depth: 3, layers: 2 },

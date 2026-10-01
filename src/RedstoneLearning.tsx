@@ -253,7 +253,7 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate} gate</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Two lever lines meet on one dust path. Either lever can light the output lamp." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "XOR is on when its inputs differ. The 3D preview shows both inputs and the output; open the tested layout for its internal wiring."}</p></div>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "XOR is on when its inputs differ. The 3D preview shows both inputs and the output; open the tested layout for its internal wiring."}</p></div>
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
               gate={gate}
@@ -264,7 +264,7 @@ export default function RedstoneLearning() {
             />
           </Suspense>
           <div className="redstone-reference-links">
-            {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
+            {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
         </div>
       </section>}

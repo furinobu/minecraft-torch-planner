@@ -469,6 +469,10 @@ function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: st
     if (x === 3 && z === 2) return props.inputB;
     return x === 1 && z === 2 && props.output;
   }
+  if ((circuitId === "OR" || circuitId === "NOR") && layer === 0) {
+    if (x === 1 && z === 0) return props.inputA;
+    if (x === 1 && z === 2) return props.inputB;
+  }
   if (circuitId === "XOR" || circuitId === "XNOR") {
     const leftTerm = circuitId === "XOR" ? props.inputA && !props.inputB : props.inputA && props.inputB;
     const rightTerm = circuitId === "XOR" ? !props.inputA && props.inputB : !props.inputA && !props.inputB;
@@ -677,17 +681,6 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
       addDustPath(THREE, root, [[-2.9, 1.6], [-1.6, 1.6], [0, 1.6], [1.6, 1.6], [2.8, 1.6]], 1.06, b);
       addBlock(THREE, root, 0, 0);
       addLabel(THREE, root, "CROSSING · ISOLATED", 0, 1.6, 0, 2.25);
-      return;
-    }
-    if (circuit.id === "diode-branch") {
-      addInput(THREE, root, -3.1, -1.1, a, "A");
-      addInput(THREE, root, -3.1, 1.1, b, "B", "B");
-      addRepeater(THREE, root, -1.45, -1.1, a);
-      addRepeater(THREE, root, -1.45, 1.1, b);
-      addDustPath(THREE, root, [[-1, -1.1], [0, -1.1], [0.75, 0]], 0.06, a);
-      addDustPath(THREE, root, [[-1, 1.1], [0, 1.1], [0.75, 0]], 0.06, b);
-      addDustPath(THREE, root, [[0.75, 0], [1.7, 0]], 0.06, output);
-      addLamp(THREE, root, 2.3, 0, output);
       return;
     }
     addInput(THREE, root, -3.2, 0, a, "A");
@@ -1026,7 +1019,7 @@ export default function RedstoneCircuit3D(props: Props) {
     "comparator-clock": "Comparator clock",
     "hopper-clock": "Two-hopper piston clock",
     "stoppable-clock": "Stoppable repeater clock",
-  } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate ?? "Redstone circuit");
+  } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate === "OR" ? "OR gate (isolated)" : props.gate ?? "Redstone circuit");
   const gate = props.gate ?? "AND";
   const formula = gate === "XOR" ? "(A OR B) AND NOT(A AND B)" : gate === "NAND" ? "AND → NOT" : "OR → NOT";
 
