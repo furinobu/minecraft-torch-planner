@@ -515,6 +515,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const wireContactLength = (key: string, dx: number, dz: number) => {
     const contacts = partsByCell.get(key) ?? [];
     if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp")) return 0.52;
+    if (contacts.some((part) => part.kind === "torch")) return 0.52;
     const component = contacts.find((part) => part.kind === "repeater" || part.kind === "comparator");
     if (!component) return null;
     const runsAlongX = component.facing !== "north" && component.facing !== "south";
