@@ -405,8 +405,8 @@ function implicationTorchPowered(part: LogicLayoutPart, props: Props) {
 function implicationRepeaterPowered(part: LogicLayoutPart, props: Props) {
   if (part.layer !== 0) return false;
   if (part.x === 2 && part.z === 1) return !props.inputA;
-  if (part.x === 1 && part.z === 2) return props.inputB;
-  if (part.x === 3 && part.z === 2) return props.output;
+  if (part.x === 3 && part.z === 2) return props.inputB;
+  if (part.x === 1 && part.z === 2) return props.output;
   return false;
 }
 
