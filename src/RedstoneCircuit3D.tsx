@@ -391,22 +391,31 @@ function logicOutputValues(id: string, props: Props, lampCount: number) {
   return [props.output];
 }
 
-function implicationDustPowered(part: LogicLayoutPart, props: Props) {
+function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   if (part.layer !== 0) return false;
-  if (part.x === 2 && part.z === 0) return !props.inputA;
-  if (part.x === 2 && part.z === 2) return props.output;
-  return false;
+  if (circuitId === "implication") {
+    if (part.x === 2 && part.z === 0) return !props.inputA;
+    return part.x === 2 && part.z === 2 && props.output;
+  }
+  return circuitId === "OR" && props.output;
 }
 
 function implicationTorchPowered(part: LogicLayoutPart, props: Props) {
   return part.layer === 0 && part.x === 1 && part.z === 0 && !props.inputA;
 }
 
-function implicationRepeaterPowered(part: LogicLayoutPart, props: Props) {
+function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   if (part.layer !== 0) return false;
-  if (part.x === 2 && part.z === 1) return !props.inputA;
-  if (part.x === 3 && part.z === 2) return props.inputB;
-  if (part.x === 1 && part.z === 2) return props.output;
+  if (circuitId === "implication") {
+    if (part.x === 2 && part.z === 1) return !props.inputA;
+    if (part.x === 3 && part.z === 2) return props.inputB;
+    return part.x === 1 && part.z === 2 && props.output;
+  }
+  if (circuitId === "OR") {
+    if (part.x === 1 && part.z === 0) return props.inputA;
+    if (part.x === 1 && part.z === 2) return props.inputB;
+    return part.x === 3 && part.z === 1 && props.output;
+  }
   return false;
 }
 
@@ -448,9 +457,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutTorch(THREE, root, x, y, z, powered, part.kind === "wall-torch", part.facing);
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
-      const powered = circuitId === "implication" && part.kind === "repeater"
-        ? implicationRepeaterPowered(part, props)
-        : false;
+      const powered = part.kind === "repeater" && logicRepeaterPowered(part, props, circuitId);
       addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
     }
     if (part.kind === "lamp") {
@@ -466,7 +473,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   for (const part of dustByCell.values()) {
     const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
     const wireY = y + 0.06;
-    const powered = circuitId === "implication" && implicationDustPowered(part, props);
+    const powered = logicDustPowered(part, props, circuitId);
     const color = powered ? 0xff493d : 0x581b1a;
     const wireOptions = { emissive: powered ? 0xff2117 : 0, intensity: powered ? 1.2 : 0, outline: false };
     const segment = (dx: number, dz: number, length: number, segmentPowered = powered) => {
@@ -479,14 +486,14 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const eastKey = `${part.layer}:${part.x + 1}:${part.z}`;
     const southKey = `${part.layer}:${part.x}:${part.z + 1}`;
     if (dustByCell.has(eastKey)) {
-      const neighborPowered = circuitId === "implication" && implicationDustPowered(dustByCell.get(eastKey)!, props);
+      const neighborPowered = logicDustPowered(dustByCell.get(eastKey)!, props, circuitId);
       segment(1, 0, 1, powered || neighborPowered);
     }
     else if (hasWireContact(eastKey)) segment(1, 0, 0.52);
     const westKey = `${part.layer}:${part.x - 1}:${part.z}`;
     if (!dustByCell.has(westKey) && hasWireContact(westKey)) segment(-1, 0, 0.52);
     if (dustByCell.has(southKey)) {
-      const neighborPowered = circuitId === "implication" && implicationDustPowered(dustByCell.get(southKey)!, props);
+      const neighborPowered = logicDustPowered(dustByCell.get(southKey)!, props, circuitId);
       segment(0, 1, 1, powered || neighborPowered);
     }
     else if (hasWireContact(southKey)) segment(0, 1, 0.52);
