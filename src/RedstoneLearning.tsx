@@ -264,7 +264,7 @@ export default function RedstoneLearning() {
             />
           </Suspense>
           <div className="redstone-reference-links">
-            {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested {gate} layout ↗</a>}
+            {activeCircuitDefinition && <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
         </div>
       </section>}
@@ -312,7 +312,7 @@ export default function RedstoneLearning() {
         <p className="redstone-copy">{activeCircuitDefinition.summary} The 3D view expands the full Java block layout; toggle its inputs to see the logical outputs.</p>
         <div className="clock-specs circuit-specs"><span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span><span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
         <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} />
-        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested Minecraft layout ↗</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>
+        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Minecraft layout ↗" : "Open the tested Minecraft layout ↗"}</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>
       </section>}
 
       <section className="redstone-section panel" id="memory">

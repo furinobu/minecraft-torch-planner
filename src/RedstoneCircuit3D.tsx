@@ -392,45 +392,11 @@ function logicOutputValues(id: string, props: Props, lampCount: number) {
 }
 
 function implicationDustPowered(part: LogicLayoutPart, props: Props) {
-  const { layer, x, z } = part;
-  const aInput = props.inputA;
-  const bInput = props.inputB;
-  const output = !aInput || bInput;
-  const aInputDust = layer === 0 && z === 0 && x >= 1 && x <= 12;
-  const aTorchInput = layer === 0 && ((x === 2 && z >= 2 && z <= 10) || (z === 10 && x >= 3 && x <= 4) || (x === 3 && z === 11));
-  const bInputDust = layer === 3 && z === 0 && x >= 1 && x <= 12;
-  const bRoute = (layer === 3 && x === 10 && z === 2)
-    || (layer === 2 && x === 10 && z === 3)
-    || (layer === 1 && x === 10 && z === 4)
-    || (layer === 0 && x === 10 && z >= 5 && z <= 7)
-    || (layer === 0 && x === 9 && z === 15);
-  const bTorchInput = layer === 0 && ((z === 10 && x >= 8 && x <= 10) || (x === 9 && z === 11));
-  const notAOutput = layer === 0 && x === 3 && z === 15;
-  const outputBus = layer === 0 && z === 16 && x >= 3 && x <= 10;
-
-  return (aInput && (aInputDust || aTorchInput))
-    || (bInput && (bInputDust || bRoute))
-    || (!bInput && bTorchInput)
-    || (!aInput && notAOutput)
-    || (output && outputBus);
+  return part.layer === 0 && part.x === 2 && part.z === 0 && !props.inputA;
 }
 
 function implicationTorchPowered(part: LogicLayoutPart, props: Props) {
-  if (part.layer !== 0) return false;
-  if (part.x === 3 && part.z === 13) return !props.inputA;
-  if (part.x === 10 && part.z === 9) return !props.inputB;
-  if (part.x === 9 && part.z === 13) return props.inputB;
-  return false;
-}
-
-function implicationRepeaterPowered(part: LogicLayoutPart, props: Props) {
-  if (part.layer === 0 && part.z === 0 && [5, 11].includes(part.x)) return props.inputA;
-  if (part.layer === 3 && part.z === 0 && [5, 11].includes(part.x)) return props.inputB;
-  if (part.layer === 0 && part.x === 2 && [1, 9].includes(part.z)) return props.inputA;
-  if (part.layer === 3 && part.x === 10 && part.z === 1) return props.inputB;
-  if (part.layer === 0 && part.x === 3 && part.z === 14) return !props.inputA;
-  if (part.layer === 0 && part.x === 9 && part.z === 14) return props.inputB;
-  return part.layer === 0 && part.x === 5 && part.z === 16 && props.output;
+  return part.layer === 0 && part.x === 1 && part.z === 0 && !props.inputA;
 }
 
 function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
@@ -443,6 +409,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const stoneCells = new Set(parts.filter((part) => part.kind === "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
   const redstoneCells = new Set(parts.filter((part) => part.kind !== "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
   const dustByCell = new Map(parts.filter((part) => part.kind === "dust").map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
+  const hasWireContact = (key: string) => redstoneCells.has(key) || stoneCells.has(key);
   const inputs: Record<string, boolean> = {
     A: props.inputA,
     B: props.inputB,
@@ -470,8 +437,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutTorch(THREE, root, x, y, z, powered, part.kind === "wall-torch", part.facing);
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
-      const powered = circuitId === "implication" && implicationRepeaterPowered(part, props);
-      addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
+      addLayoutRepeater(THREE, root, x, y, z, part.facing, false, part.kind === "comparator");
     }
     if (part.kind === "lamp") {
       const powered = lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;
@@ -502,16 +468,16 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       const neighborPowered = circuitId === "implication" && implicationDustPowered(dustByCell.get(eastKey)!, props);
       segment(1, 0, 1, powered || neighborPowered);
     }
-    else if (redstoneCells.has(eastKey)) segment(1, 0, 0.52);
+    else if (hasWireContact(eastKey)) segment(1, 0, 0.52);
     const westKey = `${part.layer}:${part.x - 1}:${part.z}`;
-    if (!dustByCell.has(westKey) && redstoneCells.has(westKey)) segment(-1, 0, 0.52);
+    if (!dustByCell.has(westKey) && hasWireContact(westKey)) segment(-1, 0, 0.52);
     if (dustByCell.has(southKey)) {
       const neighborPowered = circuitId === "implication" && implicationDustPowered(dustByCell.get(southKey)!, props);
       segment(0, 1, 1, powered || neighborPowered);
     }
-    else if (redstoneCells.has(southKey)) segment(0, 1, 0.52);
+    else if (hasWireContact(southKey)) segment(0, 1, 0.52);
     const northKey = `${part.layer}:${part.x}:${part.z - 1}`;
-    if (!dustByCell.has(northKey) && redstoneCells.has(northKey)) segment(0, -1, 0.52);
+    if (!dustByCell.has(northKey) && hasWireContact(northKey)) segment(0, -1, 0.52);
   }
   return true;
 }
@@ -866,7 +832,7 @@ export default function RedstoneCircuit3D(props: Props) {
           const maxX = Math.max(...corners.map((point) => Math.abs(point.project(camera).x)));
           const maxY = Math.max(...corners.map((point) => Math.abs(point.project(camera).y)));
           const boundsSize = bounds.getSize(new THREE.Vector3());
-          const fitMargin = Math.max(boundsSize.x, boundsSize.z) > 8 ? 0.5 : 0.72;
+          const fitMargin = props.circuit?.id === "implication" ? 0.52 : Math.max(boundsSize.x, boundsSize.z) > 8 ? 0.5 : 0.72;
           camera.zoom = Math.max(controls.minZoom, Math.min(controls.maxZoom, fitMargin / maxX, fitMargin / maxY));
           camera.updateProjectionMatrix();
           controls.update();
