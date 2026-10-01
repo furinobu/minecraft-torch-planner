@@ -309,7 +309,7 @@ export default function RedstoneLearning() {
 
       {activeCircuitDefinition && !DEDICATED_DEMOS.has(activeCircuit) && <section className="redstone-section panel circuit-detail-section" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step circuit-category-step">{activeCircuitDefinition.category.toUpperCase()}</span><div><span className="redstone-kicker">CIRCUIT EXPLORER · JAVA</span><h2>{activeCircuitDefinition.title}</h2></div></div>
-        <p className="redstone-copy">{activeCircuitDefinition.summary} Try the behavior model, then use the source layout for exact block positions and build instructions.</p>
+        <p className="redstone-copy">{activeCircuitDefinition.summary} The 3D view expands the full Java block layout; toggle its inputs to see the logical outputs.</p>
         <div className="clock-specs circuit-specs"><span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span><span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
         <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} />
         <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">Open the tested Minecraft layout ↗</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>

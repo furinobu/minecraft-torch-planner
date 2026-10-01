@@ -152,7 +152,7 @@ export default function CircuitBehaviorDemo({ circuit }: { circuit: CircuitDefin
         : circuit.id === "demux" ? <div className="circuit-output-pair"><div className={!select && a ? "lit" : ""}><span>Y0</span><strong>{!select && a ? 1 : 0}</strong></div><div className={select && a ? "lit" : ""}><span>Y1</span><strong>{select && a ? 1 : 0}</strong></div></div>
           : circuit.id === "half-adder" || circuit.id === "full-adder" ? <div className="circuit-output-pair"><div className={(sum % 2) === 1 ? "lit" : ""}><span>SUM</span><strong>{sum % 2}</strong></div><div className={sum >= 2 ? "lit" : ""}><span>CARRY OUT</span><strong>{sum >= 2 ? 1 : 0}</strong></div></div>
             : <div className={`circuit-model-output ${result ? "lit" : ""}`}><span>{circuit.id === "mux" ? `OUTPUT · D${select ? 1 : 0}` : "OUTPUT"}</span><strong>{result ? 1 : 0}</strong></div>}
-      <p className="circuit-model-note">Toggle the inputs to see the circuit's logical result. This model shows behavior; use the linked layout for Minecraft block placement.</p>
+      <p className="circuit-model-note">The 3D view shows the full Java block layout. Toggle an in-scene lever or input control to update the inputs and output lamps.</p>
     </div>}
 
     {hasSignalStrengthControl && <div className="circuit-sim-content">

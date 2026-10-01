@@ -30,6 +30,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { Group, Material, Object3D, OrthographicCamera, Scene, WebGLRenderer } from "three";
 import type { OrbitControls as OrbitControlsType } from "three/addons/controls/OrbitControls.js";
 import type { CircuitDefinition } from "./redstoneCircuits";
+import { REDSTONE_LOGIC_LAYOUTS } from "./redstoneLogicLayouts";
+import type { LogicLayoutPart } from "./redstoneLogicLayouts";
 
 const THREE = {
   Box3,
@@ -302,124 +304,175 @@ function addPiston(THREE: Three, root: Group, x: number, y: number, z: number, e
   box(THREE, root, x, y + 0.22, z, 0.38, extended ? 0.45 : 0.12, 0.38, 0x89916a);
 }
 
-function addModule(THREE: Three, root: Group, x: number, z: number, title: string, powered: boolean) {
-  const color = title === "OR" ? 0x63734b : title === "NOT" ? 0x805149 : 0x897347;
-  box(THREE, root, x, 0.48, z, 0.94, 0.96, 0.94, color, {
-    emissive: powered ? 0x8b6124 : 0,
-    intensity: powered ? 0.42 : 0,
-  });
-  box(THREE, root, x, 0.99, z, 0.55, 0.08, 0.55, powered ? 0xff3828 : 0x581b1a, { outline: false });
-  addLabel(THREE, root, `${title} ${powered ? 1 : 0}`, x, 1.48, z, 1.22);
+const LOGIC_CELL = 0.9;
+const LOGIC_LAYER = 0.92;
+
+function logicFacingAngle(facing = "east") {
+  if (facing === "north") return Math.PI / 2;
+  if (facing === "south") return -Math.PI / 2;
+  if (facing === "west") return Math.PI;
+  return 0;
+}
+
+function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number) {
+  return {
+    x: (part.x - offsetX) * LOGIC_CELL,
+    y: part.layer * LOGIC_LAYER,
+    z: (part.z - offsetZ) * LOGIC_CELL,
+  };
+}
+
+function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number) {
+  box(THREE, root, x, y + 0.46, z, 0.86, 0.92, 0.86, 0x777c77);
+}
+
+function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string) {
+  const lever = new THREE.Group();
+  lever.position.set(x, y + 0.92, z);
+  lever.rotation.y = logicFacingAngle(facing);
+  lever.userData.input = input;
+  root.add(lever);
+  box(THREE, lever, 0, 0.035, 0, 0.38, 0.07, 0.3, powered ? 0x9b8054 : 0x62665b);
+  const handle = new THREE.Group();
+  handle.position.set(0, 0.07, 0);
+  handle.rotation.z = powered ? -0.78 : 0.78;
+  lever.add(handle);
+  const bar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035, 0.052, 0.34, 6),
+    new THREE.MeshStandardMaterial({ color: 0x92988a, roughness: 0.83 }),
+  );
+  bar.position.set(0, 0.17, 0);
+  handle.add(bar);
+  box(THREE, handle, 0, 0.36, 0, 0.15, 0.15, 0.15, powered ? 0xffcc68 : 0xa8afa0);
+  addLabel(THREE, root, `${label} ${powered ? 1 : 0}`, x, y + 1.72, z, 0.82);
+}
+
+function addLayoutTorch(THREE: Three, root: Group, x: number, y: number, z: number, powered: boolean, wall: boolean, facing?: string) {
+  const angle = logicFacingAngle(facing);
+  const forwardX = Math.cos(angle);
+  const forwardZ = -Math.sin(angle);
+  const offset = wall ? 0.15 : 0;
+  const rod = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.06, 0.34, 6),
+    new THREE.MeshStandardMaterial({ color: 0x805333, roughness: 1 }),
+  );
+  rod.position.set(x - forwardX * offset, y + 0.34, z - forwardZ * offset);
+  if (wall) rod.rotation.z = -0.38;
+  root.add(rod);
+  box(THREE, root, rod.position.x, y + 0.53, rod.position.z, 0.17, 0.12, 0.17,
+    powered ? 0xff7640 : 0x693c32, { emissive: powered ? 0xff3417 : 0, intensity: powered ? 1.2 : 0 });
+}
+
+function addLayoutRepeater(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, powered: boolean, comparator = false) {
+  const component = new THREE.Group();
+  component.position.set(x, y + 0.06, z);
+  component.rotation.y = logicFacingAngle(facing);
+  root.add(component);
+  box(THREE, component, 0, 0.035, 0, 0.78, 0.12, 0.48, 0x9a9b8e);
+  box(THREE, component, 0, 0.105, 0, comparator ? 0.42 : 0.5, 0.035, 0.09,
+    powered ? 0xff4936 : 0x5d2420, { outline: false });
+  const postXs = comparator ? [-0.2, 0, 0.2] : [-0.18, 0.18];
+  for (const postX of postXs) {
+    box(THREE, component, postX, 0.17, 0, 0.07, 0.08, 0.08,
+      powered ? 0xff7143 : 0x754a37, { emissive: powered ? 0xc72d18 : 0, intensity: powered ? 0.35 : 0 });
+  }
+}
+
+function logicOutputValues(id: string, props: Props, lampCount: number) {
+  if (id === "decoder") {
+    const address = Number(props.inputA) * 2 + Number(props.inputB);
+    return Array.from({ length: lampCount }, (_, index) => address === index);
+  }
+  if (id === "demux") return [props.inputA && !props.select, props.inputA && Boolean(props.select)];
+  if (id === "half-adder" || id === "full-adder") {
+    const sum = Number(props.inputA) + Number(props.inputB) + (id === "full-adder" ? Number(props.inputC) : 0);
+    return [sum % 2 === 1, sum >= 2];
+  }
+  return [props.output];
+}
+
+function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
+  const parts = REDSTONE_LOGIC_LAYOUTS[circuitId];
+  if (!parts) return false;
+  const maxX = Math.max(...parts.map((part) => part.x));
+  const maxZ = Math.max(...parts.map((part) => part.z));
+  const offsetX = maxX / 2;
+  const offsetZ = maxZ / 2;
+  const stoneCells = new Set(parts.filter((part) => part.kind === "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
+  const redstoneCells = new Set(parts.filter((part) => part.kind !== "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
+  const dustByCell = new Map(parts.filter((part) => part.kind === "dust").map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
+  const inputs: Record<string, boolean> = {
+    A: props.inputA,
+    B: props.inputB,
+    C: Boolean(props.inputC),
+    SEL: Boolean(props.select),
+  };
+  const inputLabels: Record<string, string> = circuitId === "mux" ? { A: "D0", B: "D1", SEL: "SEL" }
+    : circuitId === "demux" ? { A: "DATA", SEL: "SEL" }
+      : circuitId === "full-adder" ? { A: "A", B: "B", C: "CIN" }
+        : { A: "A", B: "B", C: "C", SEL: "SEL" };
+  const lamps = parts.filter((part) => part.kind === "lamp").sort((a, b) => a.x - b.x || a.z - b.z);
+  const outputValues = logicOutputValues(circuitId, props, lamps.length);
+  const lampStates = new Map(lamps.map((part, index) => [`${part.layer}:${part.x}:${part.z}`, outputValues[index] ?? false]));
+
+  for (const part of parts) {
+    const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
+    if (part.kind === "stone") addLayoutStone(THREE, root, x, y, z);
+    if (part.kind === "lever") {
+      if (!stoneCells.has(`${part.layer}:${part.x}:${part.z}`)) addLayoutStone(THREE, root, x, y, z);
+      const id = part.input ?? "A";
+      addLayoutLever(THREE, root, x, y, z, id, inputLabels[id] ?? id, inputs[id], part.facing);
+    }
+    if (part.kind === "wall-torch" || part.kind === "torch") {
+      addLayoutTorch(THREE, root, x, y, z, true, part.kind === "wall-torch", part.facing);
+    }
+    if (part.kind === "repeater" || part.kind === "comparator") {
+      addLayoutRepeater(THREE, root, x, y, z, part.facing, false, part.kind === "comparator");
+    }
+    if (part.kind === "lamp") {
+      const powered = lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;
+      box(THREE, root, x, y + 0.46, z, 0.82, 0.86, 0.82, powered ? 0xffd36c : 0x66523a, {
+        emissive: powered ? 0xffa829 : 0,
+        intensity: powered ? 1.45 : 0,
+      });
+      addLabel(THREE, root, `${part.label ?? "OUT"} ${powered ? 1 : 0}`, x, y + 1.18, z, 0.9);
+    }
+  }
+
+  for (const part of dustByCell.values()) {
+    const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
+    const wireY = y + 0.06;
+    const color = 0x581b1a;
+    const segment = (dx: number, dz: number, length: number) => {
+      box(THREE, root, x + dx * LOGIC_CELL * length / 2, wireY, z + dz * LOGIC_CELL * length / 2,
+        dx ? LOGIC_CELL * length : LOGIC_CELL * 0.13, 0.04, dz ? LOGIC_CELL * length : LOGIC_CELL * 0.13, color, { outline: false });
+    };
+    box(THREE, root, x, wireY, z, LOGIC_CELL * 0.2, 0.045, LOGIC_CELL * 0.2, color, { outline: false });
+    const eastKey = `${part.layer}:${part.x + 1}:${part.z}`;
+    const southKey = `${part.layer}:${part.x}:${part.z + 1}`;
+    if (dustByCell.has(eastKey)) segment(1, 0, 1);
+    else if (redstoneCells.has(eastKey)) segment(1, 0, 0.52);
+    const westKey = `${part.layer}:${part.x - 1}:${part.z}`;
+    if (!dustByCell.has(westKey) && redstoneCells.has(westKey)) segment(-1, 0, 0.52);
+    if (dustByCell.has(southKey)) segment(0, 1, 1);
+    else if (redstoneCells.has(southKey)) segment(0, 1, 0.52);
+    const northKey = `${part.layer}:${part.x}:${part.z - 1}`;
+    if (!dustByCell.has(northKey) && redstoneCells.has(northKey)) segment(0, -1, 0.52);
+  }
+  return true;
 }
 
 function addGround(THREE: Three, scene: Scene) {
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(12, 8),
+    new THREE.PlaneGeometry(64, 32),
     new THREE.MeshStandardMaterial({ color: 0x283427, roughness: 1, metalness: 0 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.13;
   scene.add(ground);
-  const grid = new THREE.GridHelper(12, 12, 0x58634b, 0x394433);
+  const grid = new THREE.GridHelper(64, 64, 0x58634b, 0x394433);
   grid.position.y = -0.115;
   scene.add(grid);
-}
-
-function buildNot(THREE: Three, root: Group, a: boolean, output: boolean) {
-  addInput(THREE, root, -1.8, 0, a, "A");
-  addTorch(THREE, root, -1.28, 0, output, true);
-  addDustPath(THREE, root, [[-0.99, 0], [-0.2, 0], [0.6, 0], [1.58, 0]], 0.06, output);
-  addLamp(THREE, root, 2.05, 0, output);
-}
-
-function buildOr(THREE: Three, root: Group, a: boolean, b: boolean, output: boolean, invert = false) {
-  const orOutput = a || b;
-  const za = -1.25;
-  const zb = 1.25;
-  addInput(THREE, root, -3.1, za, a, "A");
-  addInput(THREE, root, -3.1, zb, b, "B", "B");
-  addRepeater(THREE, root, -1.55, za, a);
-  addRepeater(THREE, root, -1.55, zb, b);
-  const repeaterLeft = -1.55 - 0.36 - 0.085;
-  const repeaterRight = -1.55 + 0.36 + 0.085;
-  addDustPath(THREE, root, [[-2.6, za], [repeaterLeft, za]], 0.06, a);
-  addDustPath(THREE, root, [[repeaterRight, za], [-0.55, za], [0, za], [0, 0], [0.75, 0], [1.45, 0]], 0.06, a);
-  addDustPath(THREE, root, [[-2.6, zb], [repeaterLeft, zb]], 0.06, b);
-  addDustPath(THREE, root, [[repeaterRight, zb], [-0.55, zb], [0, zb], [0, 0], [0.75, 0], [1.45, 0]], 0.06, b);
-  if (!invert) {
-    addDustPath(THREE, root, [[1.45, 0], [2.2, 0]], 0.06, output);
-    addLamp(THREE, root, 2.65, 0, output);
-    return;
-  }
-  addBlock(THREE, root, 1.9, 0, orOutput);
-  addTorch(THREE, root, 2.42, 0, output, true);
-  addDustPath(THREE, root, [[2.55, 0], [3.2, 0], [4, 0]], 0.06, output);
-  addLamp(THREE, root, 4.45, 0, output);
-}
-
-function buildAnd(THREE: Three, root: Group, a: boolean, b: boolean, output: boolean, invert = false) {
-  const andOutput = a && b;
-  const za = -1.2;
-  const zb = 1.2;
-  addInput(THREE, root, -2.6, za, a, "A");
-  addInput(THREE, root, -2.6, zb, b, "B", "B");
-  addDustPath(THREE, root, [[-2.1, za], [-1.15, za], [-0.45, za], [0, za]], 0.06, a);
-  addDustPath(THREE, root, [[-2.1, zb], [-1.15, zb], [-0.45, zb], [0, zb]], 0.06, b);
-  addBlock(THREE, root, 0, za);
-  addBlock(THREE, root, 0, 0);
-  addBlock(THREE, root, 0, zb);
-  addTorch(THREE, root, 0, za, !a, false, 0.98);
-  addTorch(THREE, root, 0, zb, !b, false, 0.98);
-  addDustPath(THREE, root, [[0, za], [0, 0], [0, zb]], 1.04, !a || !b);
-  addTorch(THREE, root, 0.54, 0, andOutput, true);
-  addDustPath(THREE, root, [[0.82, 0], [1.72, 0]], 0.06, andOutput);
-  if (!invert) {
-    addDustPath(THREE, root, [[1.72, 0], [2.46, 0]], 0.06, andOutput);
-    addLamp(THREE, root, 2.95, 0, andOutput);
-    return;
-  }
-  addBlock(THREE, root, 2.25, 0, andOutput);
-  addTorch(THREE, root, 2.77, 0, output, true);
-  addDustPath(THREE, root, [[2.9, 0], [3.5, 0], [4.22, 0]], 0.06, output);
-  addLamp(THREE, root, 4.7, 0, output);
-}
-
-function buildComposite(THREE: Three, root: Group, gate: "NAND" | "NOR" | "XOR", a: boolean, b: boolean, output: boolean) {
-  if (gate === "NAND") {
-    const andOutput = a && b;
-    addInput(THREE, root, -3.7, -1.1, a, "A");
-    addInput(THREE, root, -3.7, 1.1, b, "B", "B");
-    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
-    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
-    addModule(THREE, root, -0.9, 0, "AND", andOutput);
-    addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, andOutput);
-    addModule(THREE, root, 1.05, 0, "NOT", output);
-    addDustPath(THREE, root, [[1.52, 0], [2.32, 0]], 0.06, output);
-    addLamp(THREE, root, 2.8, 0, output);
-    return;
-  }
-  if (gate === "NOR") {
-    const orOutput = a || b;
-    addInput(THREE, root, -3.7, -1.1, a, "A");
-    addInput(THREE, root, -3.7, 1.1, b, "B", "B");
-    addDustPath(THREE, root, [[-3.2, -1.1], [-2.4, -1.1], [-2.4, -0.25], [-1.455, -0.25]], 0.06, a);
-    addDustPath(THREE, root, [[-3.2, 1.1], [-2.4, 1.1], [-2.4, 0.25], [-1.455, 0.25]], 0.06, b);
-    addModule(THREE, root, -0.9, 0, "OR", orOutput);
-    addDustPath(THREE, root, [[-0.42, 0], [0.58, 0]], 0.06, orOutput);
-    addModule(THREE, root, 1.05, 0, "NOT", output);
-    addDustPath(THREE, root, [[1.52, 0], [2.32, 0]], 0.06, output);
-    addLamp(THREE, root, 2.8, 0, output);
-    return;
-  }
-
-  addInput(THREE, root, -3, -1.1, a, "A");
-  addInput(THREE, root, -3, 1.1, b, "B", "B");
-  addDustPath(THREE, root, [[-2.5, -1.1], [-1.5, -1.1], [-1.5, -0.25], [-0.555, -0.25]], 0.06, a);
-  addDustPath(THREE, root, [[-2.5, 1.1], [-1.5, 1.1], [-1.5, 0.25], [-0.555, 0.25]], 0.06, b);
-  addModule(THREE, root, 0, 0, "XOR", output);
-  addDustPath(THREE, root, [[0.555, 0], [1.35, 0], [2.305, 0]], 0.06, output);
-  addLamp(THREE, root, 2.8, 0, output);
-  return;
 }
 
 function buildClockCircuit(THREE: Three, root: Group, props: Props) {
@@ -486,9 +539,6 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
   const circuit = props.circuit;
   if (!circuit) return;
   const { inputA: a, inputB: b, output } = props;
-  const c = Boolean(props.inputC);
-  const selected = Boolean(props.select);
-  const secondary = Boolean(props.secondaryOutput);
   const value = props.value ?? 0;
   const stored = props.stored ?? 0;
   const itemCount = props.itemCount ?? 0;
@@ -543,68 +593,6 @@ function buildCatalogCircuit(THREE: Three, root: Group, props: Props) {
     addDustPath(THREE, root, [[-2.7, 0], [-1.4, 0], [-0.45, 0], [0.5, 0], [1.6, 0]], 0.06, output);
     addLamp(THREE, root, 2.3, 0, output);
     if (circuit.id === "repeater-line") addLabel(THREE, root, "SIGNAL RESTORED", 0, 1.15, -0.4, 1.65);
-    return;
-  }
-
-  if (circuit.category === "Logic") {
-    if (circuit.id === "half-adder" || circuit.id === "full-adder") {
-      addInput(THREE, root, -3.4, -1.15, a, "A");
-      addInput(THREE, root, -3.4, 1.15, b, "B", "B");
-      if (circuit.id === "full-adder") addInput(THREE, root, -1.7, 2.25, c, "C", "C");
-      addDustPath(THREE, root, [[-2.9, -1.15], [-1.4, -1.15], [-1.4, -0.25], [-1.005, -0.25]], 0.06, a);
-      addDustPath(THREE, root, [[-2.9, 1.15], [-1.4, 1.15], [-1.4, 0.25], [-1.005, 0.25]], 0.06, b);
-      if (circuit.id === "full-adder") {
-        addDustPath(THREE, root, [[-1.145, 2.25], [-0.2, 2.25], [-0.2, 0.555]], 0.06, c);
-      }
-      addModule(THREE, root, -0.45, 0, circuit.id === "full-adder" ? "FULL ADDER" : "HALF ADDER", output || secondary);
-      addDustPath(THREE, root, [[0.105, -0.25], [0.7, -0.25], [0.7, -1.15], [2.055, -1.15]], 0.06, output);
-      addDustPath(THREE, root, [[0.105, 0.25], [0.7, 0.25], [0.7, 1.15], [2.055, 1.15]], 0.06, secondary);
-      addLamp(THREE, root, 2.55, -1.15, output, "SUM");
-      addLamp(THREE, root, 2.55, 1.15, secondary, "CARRY");
-      return;
-    }
-    if (circuit.id === "decoder") {
-      addInput(THREE, root, -3.2, -0.8, a, "A");
-      addInput(THREE, root, -3.2, 0.8, b, "B", "B");
-      const address = Number(a) * 2 + Number(b);
-      addDustPath(THREE, root, [[-2.7, -0.8], [-1.9, -0.8], [-1.9, -0.25], [-1.255, -0.25]], 0.06, a);
-      addDustPath(THREE, root, [[-2.7, 0.8], [-1.9, 0.8], [-1.9, 0.25], [-1.255, 0.25]], 0.06, b);
-      addModule(THREE, root, -0.7, 0, `DEC ${address}`, true);
-      for (let line = 0; line < 4; line += 1) {
-        const z = -1.8 + line * 1.2;
-        const portZ = -0.36 + line * 0.24;
-        const routeX = -0.05 + line * 0.15;
-        addDustPath(THREE, root, [[-0.145, portZ], [routeX, portZ], [routeX, z], [0.755, z]], 0.06, address === line);
-        addLamp(THREE, root, 1.25, z, address === line, `Y${line}`);
-      }
-      return;
-    }
-    if (circuit.id === "demux") {
-      addInput(THREE, root, -3.2, 0, a, "A");
-      addInput(THREE, root, -1.9, 2.0, selected, "SEL", "SEL");
-      addDustPath(THREE, root, [[-2.7, 0], [-1.4, 0], [-1.4, -0.25], [-0.455, -0.25]], 0.06, a);
-      addDustPath(THREE, root, [[-1.345, 2.0], [0.2, 2.0], [0.2, 0.555]], 0.06, selected);
-      addModule(THREE, root, 0.1, 0, "DEMUX", a);
-      addDustPath(THREE, root, [[0.655, -0.25], [0.9, -0.25], [0.9, -1.2], [1.405, -1.2]], 0.06, a && !selected);
-      addDustPath(THREE, root, [[0.655, 0.25], [1.05, 0.25], [1.05, 1.2], [1.405, 1.2]], 0.06, a && selected);
-      addLamp(THREE, root, 1.9, -1.2, a && !selected, "Y0");
-      addLamp(THREE, root, 1.9, 1.2, a && selected, "Y1");
-      return;
-    }
-    addInput(THREE, root, -3.2, -1.1, a, circuit.id === "mux" ? "D0" : "A", "A");
-    addInput(THREE, root, -3.2, 1.1, b, circuit.id === "mux" ? "D1" : "B", "B");
-    if (circuit.id === "majority") addInput(THREE, root, -1.9, 2.4, c, "C", "C");
-    if (circuit.id === "mux") addInput(THREE, root, -1.9, 2.4, selected, "SEL", "SEL");
-    const logicName = circuit.id === "implication" ? "A→B" : circuit.title.replace(" gate", "").slice(0, 8).toUpperCase();
-    addDustPath(THREE, root, [[-2.7, -1.1], [-1.5, -1.1], [-1.5, -0.25], [-0.455, -0.25]], 0.06, a);
-    addDustPath(THREE, root, [[-2.7, 1.1], [-1.5, 1.1], [-1.5, 0.25], [-0.455, 0.25]], 0.06, b);
-    if (circuit.id === "majority" || circuit.id === "mux") {
-      const control = circuit.id === "mux" ? selected : c;
-      addDustPath(THREE, root, [[-1.345, 2.4], [-0.1, 2.4], [-0.1, 0.555]], 0.06, control);
-    }
-    addModule(THREE, root, 0.1, 0, logicName, output);
-    addDustPath(THREE, root, [[0.655, 0], [1.605, 0]], 0.06, output);
-    addLamp(THREE, root, 2.1, 0, output);
     return;
   }
 
@@ -737,14 +725,10 @@ function updateCircuit(engine: Engine, props: Props, shouldFitView: boolean) {
   const { THREE, root } = engine;
   const gate = props.gate ?? "AND";
   clearGroup(THREE, root);
-  if (props.circuit) buildCatalogCircuit(THREE, root, props);
+  if (props.circuit?.category === "Logic") buildLogicLayout(THREE, root, props, props.circuit.id);
+  else if (props.circuit) buildCatalogCircuit(THREE, root, props);
   else if (props.clock) buildClockCircuit(THREE, root, props);
-  else if (gate === "NOT") buildNot(THREE, root, props.inputA, props.output);
-  else if (gate === "OR") buildOr(THREE, root, props.inputA, props.inputB, props.output);
-  else if (gate === "AND") buildAnd(THREE, root, props.inputA, props.inputB, props.output);
-  else if (gate === "NAND") buildAnd(THREE, root, props.inputA, props.inputB, props.output, true);
-  else if (gate === "NOR") buildOr(THREE, root, props.inputA, props.inputB, props.output, true);
-  else buildComposite(THREE, root, gate as "NAND" | "NOR" | "XOR", props.inputA, props.inputB, props.output);
+  else buildLogicLayout(THREE, root, props, gate);
   if (shouldFitView) engine.fitView();
   else engine.render();
 }
@@ -790,7 +774,7 @@ export default function RedstoneCircuit3D(props: Props) {
         controls.target.set(0, 0.45, 0);
         controls.enableDamping = false;
         controls.enablePan = false;
-        controls.minZoom = 0.25;
+        controls.minZoom = 0.02;
         controls.maxZoom = 2.4;
 
         const root = new THREE.Group();
@@ -827,7 +811,9 @@ export default function RedstoneCircuit3D(props: Props) {
           ];
           const maxX = Math.max(...corners.map((point) => Math.abs(point.project(camera).x)));
           const maxY = Math.max(...corners.map((point) => Math.abs(point.project(camera).y)));
-          camera.zoom = Math.max(controls.minZoom, Math.min(0.78, 0.72 / maxX, 0.72 / maxY));
+          const boundsSize = bounds.getSize(new THREE.Vector3());
+          const fitMargin = Math.max(boundsSize.x, boundsSize.z) > 8 ? 0.5 : 0.72;
+          camera.zoom = Math.max(controls.minZoom, Math.min(controls.maxZoom, fitMargin / maxX, fitMargin / maxY));
           camera.updateProjectionMatrix();
           controls.update();
           render();
@@ -956,7 +942,9 @@ export default function RedstoneCircuit3D(props: Props) {
         </div>}
       </div>
       <div className="redstone-3d-legend">
-        <span><i className="signal-dot" /> powered redstone dust</span>
+        {props.clock || (props.circuit && props.circuit.category !== "Logic")
+          ? <span><i className="signal-dot" /> powered redstone dust</span>
+          : <span><b>LAYOUT</b> full block-by-block circuit</span>}
         {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : props.circuit ? <span><b>MODEL</b> {props.circuit.category}</span> : <>
           <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
           {gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
@@ -964,7 +952,7 @@ export default function RedstoneCircuit3D(props: Props) {
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
         {(props.circuit?.id === "half-adder" || props.circuit?.id === "full-adder") && <span><b>CARRY</b> {props.secondaryOutput ? "1 · ON" : "0 · OFF"}</span>}
       </div>
-      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. This 3D model illustrates the circuit; the linked layout gives exact tested block positions." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
+      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. The full Java block layout is shown." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
     </div>
   );
 }
