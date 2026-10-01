@@ -392,29 +392,91 @@ function logicOutputValues(id: string, props: Props, lampCount: number) {
 }
 
 function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
-  if (part.layer !== 0) return false;
+  const { x, z, layer } = part;
+  const a = props.inputA;
+  const b = props.inputB;
+  const output = props.output;
+
   if (circuitId === "implication") {
-    if (part.x === 2 && part.z === 0) return !props.inputA;
-    return part.x === 2 && part.z === 2 && props.output;
+    if (layer !== 0) return false;
+    if (x === 2 && z === 0) return !a;
+    return x === 2 && z === 2 && output;
   }
-  return circuitId === "OR" && props.output;
+
+  if (circuitId === "NOT") {
+    return layer === 0 && z === 0 && ((x === 1 && a) || (x === 4 && output));
+  }
+  if (circuitId === "OR") return layer === 0 && output;
+  if (circuitId === "NOR") {
+    if (layer !== 0) return false;
+    if (x >= 1 && x <= 3 && z >= 0 && z <= 2) return a || b;
+    return x === 6 && z === 1 && output;
+  }
+  if (circuitId === "AND") {
+    if (layer === 0 && x === 1 && z === 0) return a;
+    if (layer === 0 && x === 1 && z === 2) return b;
+    if (layer === 0 && x === 4 && z === 1) return output;
+    return layer === 1 && x === 2 && z === 1 && (!a || !b);
+  }
+  if (circuitId === "NAND") {
+    if (layer === 0 && x === 1 && z === 0) return a;
+    if (layer === 0 && x === 1 && z === 2) return b;
+    return layer === 1 && (x === 2 || x === 3) && z === 1 && output;
+  }
+
+  if (circuitId === "XOR" || circuitId === "XNOR") {
+    const leftTerm = circuitId === "XOR" ? a && !b : a && b;
+    const rightTerm = circuitId === "XOR" ? !a && b : !a && !b;
+    if (layer === 0 && z === 0) return a;
+    if (layer === 3 && z === 0) return b;
+    if (layer === 0 && z >= 10) return output;
+    if (layer === 0 && x <= 4) return leftTerm;
+    if (layer === 0 && x >= 8) return rightTerm;
+    if ((layer === 1 || layer === 2) && x === 4) return leftTerm;
+    if ((layer === 1 || layer === 2) && x === 10) return rightTerm;
+    if (layer === 3 && x <= 4) return leftTerm;
+    if (layer === 3 && x >= 8) return rightTerm;
+  }
+
+  return false;
 }
 
-function implicationTorchPowered(part: LogicLayoutPart, props: Props) {
-  return part.layer === 0 && part.x === 1 && part.z === 0 && !props.inputA;
+function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
+  const { x, z, layer } = part;
+  if (circuitId === "implication") return layer === 0 && x === 1 && z === 0 && !props.inputA;
+  if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {
+    if (part.kind === "wall-torch") return props.output;
+  }
+  if (circuitId === "AND" || circuitId === "NAND") {
+    return layer === 1 && x === 2 && (z === 0 ? !props.inputA : z === 2 && !props.inputB);
+  }
+  if (circuitId === "XOR" || circuitId === "XNOR") {
+    const leftTerm = circuitId === "XOR" ? props.inputA && !props.inputB : props.inputA && props.inputB;
+    const rightTerm = circuitId === "XOR" ? !props.inputA && props.inputB : !props.inputA && !props.inputB;
+    if (z === 9 && (x === 2 || x === 8)) return !props.inputA;
+    if (z === 9 && x === 10) return !props.inputB;
+    if (z === 13 && x === 3) return !leftTerm;
+    if (z === 13 && x === 9) return !rightTerm;
+  }
+  return false;
 }
 
 function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
-  if (part.layer !== 0) return false;
+  const { x, z, layer } = part;
   if (circuitId === "implication") {
-    if (part.x === 2 && part.z === 1) return !props.inputA;
-    if (part.x === 3 && part.z === 2) return props.inputB;
-    return part.x === 1 && part.z === 2 && props.output;
+    if (layer !== 0) return false;
+    if (x === 2 && z === 1) return !props.inputA;
+    if (x === 3 && z === 2) return props.inputB;
+    return x === 1 && z === 2 && props.output;
   }
-  if (circuitId === "OR") {
-    if (part.x === 1 && part.z === 0) return props.inputA;
-    if (part.x === 1 && part.z === 2) return props.inputB;
-    return part.x === 3 && part.z === 1 && props.output;
+  if (circuitId === "XOR" || circuitId === "XNOR") {
+    const leftTerm = circuitId === "XOR" ? props.inputA && !props.inputB : props.inputA && props.inputB;
+    const rightTerm = circuitId === "XOR" ? !props.inputA && props.inputB : !props.inputA && !props.inputB;
+    if (z === 0 && layer === 0) return props.inputA;
+    if (z === 0 && layer === 3) return props.inputB;
+    if (layer === 0 && z === 16 && x === 5) return props.output;
+    if (x <= 4) return leftTerm;
+    if (x >= 8) return rightTerm;
   }
   return false;
 }
@@ -453,7 +515,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutLever(THREE, root, x, y, z, id, inputLabels[id] ?? id, inputs[id], part.facing);
     }
     if (part.kind === "wall-torch" || part.kind === "torch") {
-      const powered = circuitId === "implication" ? implicationTorchPowered(part, props) : true;
+      const powered = logicTorchPowered(part, props, circuitId);
       addLayoutTorch(THREE, root, x, y, z, powered, part.kind === "wall-torch", part.facing);
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
