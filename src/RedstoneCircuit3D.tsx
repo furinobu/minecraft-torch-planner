@@ -392,11 +392,22 @@ function logicOutputValues(id: string, props: Props, lampCount: number) {
 }
 
 function implicationDustPowered(part: LogicLayoutPart, props: Props) {
-  return part.layer === 0 && part.x === 2 && part.z === 0 && !props.inputA;
+  if (part.layer !== 0) return false;
+  if (part.x === 2 && part.z === 0) return !props.inputA;
+  if (part.x === 2 && part.z === 2) return props.output;
+  return false;
 }
 
 function implicationTorchPowered(part: LogicLayoutPart, props: Props) {
   return part.layer === 0 && part.x === 1 && part.z === 0 && !props.inputA;
+}
+
+function implicationRepeaterPowered(part: LogicLayoutPart, props: Props) {
+  if (part.layer !== 0) return false;
+  if (part.x === 2 && part.z === 1) return !props.inputA;
+  if (part.x === 1 && part.z === 2) return props.inputB;
+  if (part.x === 3 && part.z === 2) return props.output;
+  return false;
 }
 
 function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
@@ -437,7 +448,10 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutTorch(THREE, root, x, y, z, powered, part.kind === "wall-torch", part.facing);
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
-      addLayoutRepeater(THREE, root, x, y, z, part.facing, false, part.kind === "comparator");
+      const powered = circuitId === "implication" && part.kind === "repeater"
+        ? implicationRepeaterPowered(part, props)
+        : false;
+      addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
     }
     if (part.kind === "lamp") {
       const powered = lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;

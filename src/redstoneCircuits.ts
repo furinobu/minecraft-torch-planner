@@ -42,7 +42,7 @@ export const REDSTONE_CIRCUITS: CircuitDefinition[] = [
   { id: "NAND", category: "Logic", title: "NAND gate", summary: "Make the both-active state the only off state.", path: "nand", width: 4, depth: 3, layers: 2 },
   { id: "XOR", category: "Logic", title: "XOR gate", summary: "Detect a disagreement between two inputs.", path: "xor", width: 13, depth: 17, layers: 4 },
   { id: "XNOR", category: "Logic", title: "XNOR gate", summary: "Detect that two inputs agree.", path: "xnor", width: 13, depth: 17, layers: 4 },
-  { id: "implication", category: "Logic", title: "Implication gate", summary: "Detect whether a logical rule is satisfied.", path: "implication", width: 4, depth: 2, layers: 1 },
+  { id: "implication", category: "Logic", title: "Implication gate", summary: "Detect whether a logical rule is satisfied.", path: "implication", width: 5, depth: 3, layers: 1 },
   { id: "mux", category: "Logic", title: "2-to-1 multiplexer", summary: "Choose which input is allowed to become the output.", path: "mux", width: 17, depth: 20, layers: 7 },
   { id: "demux", category: "Logic", title: "1-to-2 demultiplexer", summary: "Send one input toward a selected output.", path: "demux", width: 13, depth: 17, layers: 4 },
   { id: "decoder", category: "Logic", title: "2-to-4 decoder", summary: "Translate a binary input pattern into a selected line.", path: "decoder", width: 25, depth: 17, layers: 4 },
