@@ -313,6 +313,7 @@ function addPiston(THREE: Three, root: Group, x: number, y: number, z: number, e
 
 const LOGIC_CELL = 1;
 const LOGIC_LAYER = 0.92;
+const LOGIC_WALL_TORCH_OFFSET = 0.52;
 
 function logicFacingAngle(facing = "east") {
   if (facing === "north") return Math.PI / 2;
@@ -358,7 +359,7 @@ function addLayoutTorch(THREE: Three, root: Group, x: number, y: number, z: numb
   const angle = logicFacingAngle(facing);
   const forwardX = Math.cos(angle);
   const forwardZ = -Math.sin(angle);
-  const offset = wall ? 0.52 : 0;
+  const offset = wall ? LOGIC_WALL_TORCH_OFFSET : 0;
   const lean = wall ? 0.38 : 0;
   const rod = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.06, 0.34, 6),
@@ -514,6 +515,10 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const wireContactLength = (key: string, dx: number, dz: number) => {
     const contacts = partsByCell.get(key) ?? [];
     if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp")) return 0.52;
+    if ((circuitId === "NOT" || circuitId === "NOR") && contacts.some((part) => part.kind === "wall-torch")) {
+      // The rendered torch sits on the support block's face, one half-cell before its layout cell.
+      return LOGIC_CELL + LOGIC_WALL_TORCH_OFFSET;
+    }
     if (contacts.some((part) => part.kind === "torch")) return 0.52;
     const component = contacts.find((part) => part.kind === "repeater" || part.kind === "comparator");
     if (!component) return null;
