@@ -413,7 +413,7 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
   if (circuitId === "implication") {
     if (layer !== 0) return false;
     if (x === 2 && z === 0) return !a;
-    return x === 2 && z === 2 && output;
+    return (x === 2 || x === 3) && z === 2 && output;
   }
 
   if (circuitId === "NOT") {
@@ -479,8 +479,7 @@ function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: st
   if (circuitId === "implication") {
     if (layer !== 0) return false;
     if (x === 2 && z === 1) return !props.inputA;
-    if (x === 3 && z === 2) return props.inputB;
-    return x === 1 && z === 2 && props.output;
+    return x === 1 && z === 2 && props.inputB;
   }
   if ((circuitId === "OR" || circuitId === "NOR") && layer === 0) {
     if (x === 1 && z === 0) return props.inputA;
