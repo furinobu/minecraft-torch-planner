@@ -516,8 +516,8 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const contacts = partsByCell.get(key) ?? [];
     if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp")) return 0.52;
     if ((circuitId === "NOT" || circuitId === "NOR") && contacts.some((part) => part.kind === "wall-torch")) {
-      // Keep the straight dust trace inside its own block, clear of the adjacent torch block.
-      return LOGIC_CELL;
+      // Half a cell from the dust center ends at the adjacent torch block's boundary.
+      return LOGIC_CELL / 2;
     }
     if (contacts.some((part) => part.kind === "torch")) return 0.52;
     const component = contacts.find((part) => part.kind === "repeater" || part.kind === "comparator");
