@@ -331,13 +331,22 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 }
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number) {
-  box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, 0x777c77);
+  const color = root.userData.circuitId === "XOR" ? 0xd5dbc9 : 0x777c77;
+  box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
 
-function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string) {
+function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string, mount?: "wall") {
   const lever = new THREE.Group();
-  lever.position.set(x, y + 0.92, z);
-  lever.rotation.y = logicFacingAngle(facing);
+  const angle = logicFacingAngle(facing);
+  const forwardX = Math.cos(angle);
+  const forwardZ = -Math.sin(angle);
+  lever.position.set(x + (mount === "wall" ? forwardX * 0.5 : 0), y + (mount === "wall" ? 0.46 : 0.92), z + (mount === "wall" ? forwardZ * 0.5 : 0));
+  if (mount === "wall") {
+    if (facing === "north") lever.rotation.x = -Math.PI / 2;
+    else if (facing === "south") lever.rotation.x = Math.PI / 2;
+    else if (facing === "west") lever.rotation.z = Math.PI / 2;
+    else lever.rotation.z = -Math.PI / 2;
+  } else lever.rotation.y = angle;
   lever.userData.input = input;
   root.add(lever);
   box(THREE, lever, 0, 0.035, 0, 0.38, 0.07, 0.3, powered ? 0x9b8054 : 0x62665b);
@@ -441,12 +450,15 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
   if (circuitId === "XOR") {
     const leftTerm = a && !b;
     const rightTerm = !a && b;
-    if (layer !== 0) return false;
-    if (x === 1 && (z === 0 || z === 1)) return a;
-    if (x === 1 && (z === 4 || z === 5)) return b;
-    if (x === 3 && z === 1) return leftTerm;
-    if (x === 3 && z === 4) return rightTerm;
-    return x === 3 && (z === 2 || z === 3) && output;
+    if (layer === 1) {
+      if (z === 0 && x >= 4 && x <= 6) return a;
+      if (z === 4 && x >= 4 && x <= 6) return b;
+      if (z === 0 && x >= 1 && x <= 2) return leftTerm;
+      if (z === 4 && x >= 1 && x <= 2) return rightTerm;
+      if (x === 1 && z === 2) return output;
+    }
+    if (layer === 2 && x === 4 && z === 2) return a || b;
+    return false;
   }
   if (circuitId === "XNOR") {
     const leftTerm = a && b;
@@ -468,6 +480,10 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
 function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   const { x, z, layer } = part;
   if (circuitId === "implication") return layer === 0 && x === 1 && z === 0 && !props.inputA;
+  if (circuitId === "XOR" && layer === 1) {
+    if (x === 3 && z === 0) return props.inputA && !props.inputB;
+    if (x === 3 && z === 4) return !props.inputA && props.inputB;
+  }
   if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {
     if (part.kind === "wall-torch") return props.output;
   }
@@ -517,6 +533,7 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
 function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
   const parts = REDSTONE_LOGIC_LAYOUTS[circuitId];
   if (!parts) return false;
+  root.userData.circuitId = circuitId;
   const maxX = Math.max(...parts.map((part) => part.x));
   const maxZ = Math.max(...parts.map((part) => part.z));
   const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
@@ -561,7 +578,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     if (part.kind === "lever") {
       if (!stoneCells.has(`${part.layer}:${part.x}:${part.z}`)) addLayoutStone(THREE, root, x, y, z);
       const id = part.input ?? "A";
-      addLayoutLever(THREE, root, x, y, z, id, inputLabels[id] ?? id, inputs[id], part.facing);
+      addLayoutLever(THREE, root, x, y, z, id, inputLabels[id] ?? id, inputs[id], part.facing, part.mount);
     }
     if (part.kind === "wall-torch" || part.kind === "torch") {
       const powered = logicTorchPowered(part, props, circuitId);
@@ -1078,7 +1095,7 @@ export default function RedstoneCircuit3D(props: Props) {
     "stoppable-clock": "Stoppable repeater clock",
   } satisfies Record<RedstoneClock, string>)[props.clock] : props.gate === "OR" ? "OR gate (isolated)" : props.gate ?? "Redstone circuit");
   const gate = props.gate ?? "AND";
-  const formula = gate === "XOR" ? "(A OR B) AND NOT(A AND B)" : gate === "NAND" ? "AND → NOT" : "OR → NOT";
+  const formula = gate === "XOR" ? "(A AND NOT B) OR (NOT A AND B)" : gate === "NAND" ? "AND → NOT" : "OR → NOT";
 
   return (
     <div className="redstone-3d-viewer">
@@ -1105,7 +1122,7 @@ export default function RedstoneCircuit3D(props: Props) {
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
         {(props.circuit?.id === "half-adder" || props.circuit?.id === "full-adder") && <span><b>CARRY</b> {props.secondaryOutput ? "1 · ON" : "0 · OFF"}</span>}
       </div>
-      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. The full Java block layout is shown." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Static fallback art: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
+      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. The full Java block layout is shown." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Reference layouts: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
     </div>
   );
 }

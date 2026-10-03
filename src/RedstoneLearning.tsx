@@ -253,11 +253,9 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This common tileable, torch-based XOR is a reusable logic cell for computer builds. Flip A and B above to check its truth table."}</p></div>
-          {gate === "XOR" && activeCircuitDefinition?.sourceImageUrl ? <figure className="redstone-xor-reference">
-            <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer"><img src={activeCircuitDefinition.sourceImageUrl} alt="Common tileable torch-based XOR gate build in Minecraft" /></a>
-            <figcaption><span>Common tileable torch XOR reference build</span><span>A {inputA ? 1 : 0} · B {inputB ? 1 : 0} · OUT {output ? 1 : 0}</span><small>Image: <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer">Redstone University</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a></small></figcaption>
-          </figure> : <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This common tileable, torch-based XOR routes the two exclusive input cases through separate torches, then merges them at the output. Flip A and B above to check its truth table."}</p></div>
+          <div className="redstone-build-preview">
+          <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
               gate={gate}
               inputA={inputA}
@@ -265,7 +263,12 @@ export default function RedstoneLearning() {
               output={output}
               onInputToggle={(input) => input === "A" ? setInputA((value) => !value) : setInputB((value) => !value)}
             />
-          </Suspense>}
+          </Suspense>
+          {gate === "XOR" && activeCircuitDefinition?.sourceImageUrl && <figure className="redstone-xor-reference">
+            <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer"><img src={activeCircuitDefinition.sourceImageUrl} alt="Compact tileable torch-based XOR build reference" /></a>
+            <figcaption><span>Layout reference · Redstone University</span><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a></figcaption>
+          </figure>}
+          </div>
           <div className="redstone-reference-links">
             {activeCircuitDefinition && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.sourceUrl ? "Open the common tileable XOR build ↗" : activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
