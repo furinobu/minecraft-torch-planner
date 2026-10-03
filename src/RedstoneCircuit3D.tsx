@@ -539,6 +539,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
   const offsetZ = maxZ / 2 - (maxZ % 2 === 0 ? 0.5 : 0);
   const stoneCells = new Set(parts.filter((part) => part.kind === "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
+  const lampCells = new Set(parts.filter((part) => part.kind === "lamp").map((part) => `${part.layer}:${part.x}:${part.z}`));
   const dustByCell = new Map(parts.filter((part) => part.kind === "dust").map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
   const partsByCell = new Map<string, LogicLayoutPart[]>();
   for (const part of parts) {
@@ -576,7 +577,8 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
     if (part.kind === "stone") addLayoutStone(THREE, root, x, y, z);
     if (part.kind === "lever") {
-      if (!stoneCells.has(`${part.layer}:${part.x}:${part.z}`)) addLayoutStone(THREE, root, x, y, z);
+      const cell = `${part.layer}:${part.x}:${part.z}`;
+      if (!stoneCells.has(cell) && !lampCells.has(cell)) addLayoutStone(THREE, root, x, y, z);
       const id = part.input ?? "A";
       addLayoutLever(THREE, root, x, y, z, id, inputLabels[id] ?? id, inputs[id], part.facing, part.mount);
     }
@@ -589,12 +591,16 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
     }
     if (part.kind === "lamp") {
-      const powered = lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;
+      const powered = circuitId === "XOR"
+        ? part.label === "A" ? props.inputA : part.label === "B" ? props.inputB : props.output
+        : lampStates.get(`${part.layer}:${part.x}:${part.z}`) ?? false;
       box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, powered ? 0xffd36c : 0x66523a, {
         emissive: powered ? 0xffa829 : 0,
         intensity: powered ? 1.45 : 0,
       });
-      addLabel(THREE, root, `${part.label ?? "OUT"} ${powered ? 1 : 0}`, x, y + 1.18, z, 0.9);
+      if (circuitId !== "XOR" || (part.label !== "A" && part.label !== "B")) {
+        addLabel(THREE, root, `${part.label ?? "OUT"} ${powered ? 1 : 0}`, x, y + 1.18, z, 0.9);
+      }
     }
   }
 
