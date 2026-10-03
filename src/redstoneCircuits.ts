@@ -22,11 +22,12 @@ export type CircuitDefinition = {
   depth: number;
   layers: number;
   blocks?: number;
+  sourceUrl?: string;
   clock?: { period: number; high: number; low: number };
 };
 
-// Circuit names and dimensions follow Redstonery's public catalog. Local previews
-// explain each circuit's behavior; the source links show its tested block layout.
+// Local previews explain circuit behavior; dimensions and layouts come from each
+// circuit's linked source catalog.
 export const REDSTONE_CIRCUITS: CircuitDefinition[] = [
   { id: "repeater-line", category: "Signal", title: "Repeater restores", summary: "Separate restoring signal strength from delaying a signal.", path: "repeater-line", width: 7, depth: 1, layers: 1 },
   { id: "dust-staircase", category: "Signal", title: "Dust staircase", summary: "Carry a signal between heights while checking support and clearance.", path: "dust-staircase", width: 9, depth: 1, layers: 5 },
@@ -39,7 +40,7 @@ export const REDSTONE_CIRCUITS: CircuitDefinition[] = [
   { id: "NOR", category: "Logic", title: "NOR gate", summary: "Detect that no input is active.", path: "nor", width: 8, depth: 3, layers: 1 },
   { id: "AND", category: "Logic", title: "AND gate", summary: "Require two conditions at the same time.", path: "and", width: 6, depth: 3, layers: 2 },
   { id: "NAND", category: "Logic", title: "NAND gate", summary: "Make the both-active state the only off state.", path: "nand", width: 4, depth: 3, layers: 2 },
-  { id: "XOR", category: "Logic", title: "XOR gate", summary: "Detect a disagreement between two inputs.", path: "xor", width: 13, depth: 17, layers: 4 },
+  { id: "XOR", category: "Logic", title: "XOR gate", summary: "Detect a disagreement between two inputs.", path: "xor", width: 5, depth: 6, layers: 2, sourceUrl: "https://mineschematic.com/s/xor-gate-a8f82de0" },
   { id: "XNOR", category: "Logic", title: "XNOR gate", summary: "Detect that two inputs agree.", path: "xnor", width: 13, depth: 17, layers: 4 },
   { id: "implication", category: "Logic", title: "Implication gate", summary: "Detect whether a logical rule is satisfied.", path: "implication", width: 5, depth: 3, layers: 1 },
   { id: "mux", category: "Logic", title: "2-to-1 multiplexer", summary: "Choose which input is allowed to become the output.", path: "mux", width: 17, depth: 20, layers: 7 },

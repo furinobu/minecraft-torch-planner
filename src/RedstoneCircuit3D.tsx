@@ -438,9 +438,19 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
     return layer === 1 && (x === 2 || x === 3) && z === 1 && output;
   }
 
-  if (circuitId === "XOR" || circuitId === "XNOR") {
-    const leftTerm = circuitId === "XOR" ? a && !b : a && b;
-    const rightTerm = circuitId === "XOR" ? !a && b : !a && !b;
+  if (circuitId === "XOR") {
+    const leftTerm = a && !b;
+    const rightTerm = !a && b;
+    if (layer !== 0) return false;
+    if (x === 1 && (z === 0 || z === 1)) return a;
+    if (x === 1 && (z === 4 || z === 5)) return b;
+    if (x === 3 && z === 1) return leftTerm;
+    if (x === 3 && z === 4) return rightTerm;
+    return x === 3 && (z === 2 || z === 3) && output;
+  }
+  if (circuitId === "XNOR") {
+    const leftTerm = a && b;
+    const rightTerm = !a && !b;
     if (layer === 0 && z === 0) return a;
     if (layer === 3 && z === 0) return b;
     if (layer === 0 && z >= 10) return output;
@@ -464,9 +474,9 @@ function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: strin
   if (circuitId === "AND" || circuitId === "NAND") {
     return layer === 1 && x === 2 && (z === 0 ? !props.inputA : z === 2 && !props.inputB);
   }
-  if (circuitId === "XOR" || circuitId === "XNOR") {
-    const leftTerm = circuitId === "XOR" ? props.inputA && !props.inputB : props.inputA && props.inputB;
-    const rightTerm = circuitId === "XOR" ? !props.inputA && props.inputB : !props.inputA && !props.inputB;
+  if (circuitId === "XNOR") {
+    const leftTerm = props.inputA && props.inputB;
+    const rightTerm = !props.inputA && !props.inputB;
     if (z === 9 && (x === 2 || x === 8)) return !props.inputA;
     if (z === 9 && x === 10) return !props.inputB;
     if (z === 13 && x === 3) return !leftTerm;
@@ -475,7 +485,7 @@ function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: strin
   return false;
 }
 
-function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
+function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   const { x, z, layer } = part;
   if (circuitId === "implication") {
     if (layer !== 0) return false;
@@ -486,9 +496,15 @@ function logicRepeaterPowered(part: LogicLayoutPart, props: Props, circuitId: st
     if (x === 1 && z === 0) return props.inputA;
     if (x === 1 && z === 2) return props.inputB;
   }
-  if (circuitId === "XOR" || circuitId === "XNOR") {
-    const leftTerm = circuitId === "XOR" ? props.inputA && !props.inputB : props.inputA && props.inputB;
-    const rightTerm = circuitId === "XOR" ? !props.inputA && props.inputB : !props.inputA && !props.inputB;
+  if (circuitId === "XOR") {
+    if (layer !== 0) return false;
+    if (part.kind === "comparator" && x === 2 && z === 1) return props.inputA && !props.inputB;
+    if (part.kind === "comparator" && x === 2 && z === 4) return !props.inputA && props.inputB;
+    if (part.kind === "repeater" && x === 4 && z === 2) return props.output;
+  }
+  if (circuitId === "XNOR") {
+    const leftTerm = props.inputA && props.inputB;
+    const rightTerm = !props.inputA && !props.inputB;
     if (z === 0 && layer === 0) return props.inputA;
     if (z === 0 && layer === 3) return props.inputB;
     if (layer === 0 && z === 16 && x === 5) return props.output;
@@ -552,7 +568,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       addLayoutTorch(THREE, root, x, y, z, powered, part.kind === "wall-torch", part.facing);
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
-      const powered = part.kind === "repeater" && logicRepeaterPowered(part, props, circuitId);
+      const powered = logicComponentPowered(part, props, circuitId);
       addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
     }
     if (part.kind === "lamp") {
