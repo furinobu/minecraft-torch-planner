@@ -253,8 +253,11 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "XOR turns on when exactly one input is active. The compact preview highlights the matching path; the linked Java schematic shows the full build."}</p></div>
-          <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This common tileable, torch-based XOR is a reusable logic cell for computer builds. Flip A and B above to check its truth table."}</p></div>
+          {gate === "XOR" && activeCircuitDefinition?.sourceImageUrl ? <figure className="redstone-xor-reference">
+            <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer"><img src={activeCircuitDefinition.sourceImageUrl} alt="Common tileable torch-based XOR gate build in Minecraft" /></a>
+            <figcaption><span>Common tileable torch XOR reference build</span><span>A {inputA ? 1 : 0} · B {inputB ? 1 : 0} · OUT {output ? 1 : 0}</span><small>Image: <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer">Redstone University</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a></small></figcaption>
+          </figure> : <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
               gate={gate}
               inputA={inputA}
@@ -262,9 +265,9 @@ export default function RedstoneLearning() {
               output={output}
               onInputToggle={(input) => input === "A" ? setInputA((value) => !value) : setInputB((value) => !value)}
             />
-          </Suspense>
+          </Suspense>}
           <div className="redstone-reference-links">
-            {activeCircuitDefinition && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.sourceUrl ? "Open the compact Java schematic ↗" : activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
+            {activeCircuitDefinition && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.sourceUrl ? "Open the common tileable XOR build ↗" : activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
         </div>
       </section>}
@@ -310,7 +313,7 @@ export default function RedstoneLearning() {
       {activeCircuitDefinition && !DEDICATED_DEMOS.has(activeCircuit) && <section className="redstone-section panel circuit-detail-section" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step circuit-category-step">{activeCircuitDefinition.category.toUpperCase()}</span><div><span className="redstone-kicker">CIRCUIT EXPLORER · JAVA</span><h2>{activeCircuitDefinition.title}</h2></div></div>
         <p className="redstone-copy">{activeCircuitDefinition.summary} The 3D view expands the full Java block layout; toggle its inputs to see the logical outputs.</p>
-        <div className="clock-specs circuit-specs"><span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span><span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
+        <div className="clock-specs circuit-specs">{activeCircuitDefinition.width !== undefined && activeCircuitDefinition.depth !== undefined && <span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span>}{activeCircuitDefinition.layers !== undefined && <span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>}{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
         <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} />
         <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Minecraft layout ↗" : "Open the tested Minecraft layout ↗"}</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>
       </section>}
