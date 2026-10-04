@@ -331,7 +331,9 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 }
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number) {
-  const color = root.userData.circuitId === "XOR" ? 0xd5dbc9 : 0x777c77;
+  const color = root.userData.circuitId === "XOR"
+    ? y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9
+    : 0x777c77;
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
 
@@ -448,17 +450,11 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
   }
 
   if (circuitId === "XOR") {
-    const leftTerm = a && !b;
-    const rightTerm = !a && b;
-    if (layer === 1) {
-      if (z === 0 && x >= 4 && x <= 6) return a;
-      if (z === 4 && x >= 4 && x <= 6) return b;
-      if (z === 0 && x >= 1 && x <= 2) return leftTerm;
-      if (z === 4 && x >= 1 && x <= 2) return rightTerm;
-      if (x === 1 && z === 2) return output;
-    }
-    if (layer === 2 && x === 4 && z === 2) return a || b;
-    return false;
+    if (part.signal === "A") return a;
+    if (part.signal === "B") return b;
+    if (part.signal === "A_ONLY") return a && !b;
+    if (part.signal === "B_ONLY") return !a && b;
+    return part.signal === "OUTPUT" && output;
   }
   if (circuitId === "XNOR") {
     const leftTerm = a && b;
@@ -480,9 +476,9 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
 function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   const { x, z, layer } = part;
   if (circuitId === "implication") return layer === 0 && x === 1 && z === 0 && !props.inputA;
-  if (circuitId === "XOR" && layer === 1) {
-    if (x === 3 && z === 0) return props.inputA && !props.inputB;
-    if (x === 3 && z === 4) return !props.inputA && props.inputB;
+  if (circuitId === "XOR" && layer === 2) {
+    if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
+    if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
   }
   if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {
     if (part.kind === "wall-torch") return props.output;
@@ -616,16 +612,41 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
         dx ? LOGIC_CELL * length : LOGIC_CELL * 0.13, 0.04, dz ? LOGIC_CELL * length : LOGIC_CELL * 0.13, segmentColor,
         { emissive: segmentPowered ? 0xff2117 : 0, intensity: segmentPowered ? 1.2 : 0, outline: false });
     };
+    const connectionPowered = (neighbor: LogicLayoutPart) => {
+      const neighborPowered = logicDustPowered(neighbor, props, circuitId);
+      return circuitId === "XOR" ? powered && neighborPowered : powered || neighborPowered;
+    };
+    const steppedSegment = (neighbor: LogicLayoutPart, dx: number, dz: number) => {
+      const highPart = part.layer > neighbor.layer ? part : neighbor;
+      const lowPart = part.layer > neighbor.layer ? neighbor : part;
+      const high = layoutPosition(highPart, offsetX, offsetZ);
+      const low = layoutPosition(lowPart, offsetX, offsetZ);
+      const towardsLowX = Math.sign(lowPart.x - highPart.x);
+      const towardsLowZ = Math.sign(lowPart.z - highPart.z);
+      const faceX = dx ? high.x + towardsLowX * 0.49 : high.x;
+      const faceZ = dz ? high.z + towardsLowZ * 0.49 : high.z;
+      const segmentPowered = connectionPowered(neighbor);
+      const segmentColor = segmentPowered ? 0xff493d : 0x581b1a;
+      const height = Math.abs(high.y - low.y);
+      box(THREE, root, faceX, (high.y + low.y) / 2 + 0.06, faceZ,
+        dx ? 0.035 : 0.2, height, dz ? 0.035 : 0.2, segmentColor,
+        { emissive: segmentPowered ? 0xff2117 : 0, intensity: segmentPowered ? 1.2 : 0, outline: false });
+    };
     box(THREE, root, x, wireY, z, LOGIC_CELL * 0.2, 0.045, LOGIC_CELL * 0.2, color, wireOptions);
     const eastKey = `${part.layer}:${part.x + 1}:${part.z}`;
     const southKey = `${part.layer}:${part.x}:${part.z + 1}`;
     if (dustByCell.has(eastKey)) {
-      const neighborPowered = logicDustPowered(dustByCell.get(eastKey)!, props, circuitId);
-      segment(1, 0, 1, powered || neighborPowered);
+      segment(1, 0, 1, connectionPowered(dustByCell.get(eastKey)!));
     }
     else {
-      const contactLength = wireContactLength(eastKey, 1, 0);
-      if (contactLength !== null) segment(1, 0, contactLength);
+      const eastHigher = dustByCell.get(`${part.layer + 1}:${part.x + 1}:${part.z}`);
+      const eastLower = dustByCell.get(`${part.layer - 1}:${part.x + 1}:${part.z}`);
+      if (eastHigher) steppedSegment(eastHigher, 1, 0);
+      else if (eastLower) steppedSegment(eastLower, 1, 0);
+      else {
+        const contactLength = wireContactLength(eastKey, 1, 0);
+        if (contactLength !== null) segment(1, 0, contactLength);
+      }
     }
     const westKey = `${part.layer}:${part.x - 1}:${part.z}`;
     if (!dustByCell.has(westKey)) {
@@ -633,12 +654,17 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       if (contactLength !== null) segment(-1, 0, contactLength);
     }
     if (dustByCell.has(southKey)) {
-      const neighborPowered = logicDustPowered(dustByCell.get(southKey)!, props, circuitId);
-      segment(0, 1, 1, powered || neighborPowered);
+      segment(0, 1, 1, connectionPowered(dustByCell.get(southKey)!));
     }
     else {
-      const contactLength = wireContactLength(southKey, 0, 1);
-      if (contactLength !== null) segment(0, 1, contactLength);
+      const southHigher = dustByCell.get(`${part.layer + 1}:${part.x}:${part.z + 1}`);
+      const southLower = dustByCell.get(`${part.layer - 1}:${part.x}:${part.z + 1}`);
+      if (southHigher) steppedSegment(southHigher, 0, 1);
+      else if (southLower) steppedSegment(southLower, 0, 1);
+      else {
+        const contactLength = wireContactLength(southKey, 0, 1);
+        if (contactLength !== null) segment(0, 1, contactLength);
+      }
     }
     const northKey = `${part.layer}:${part.x}:${part.z - 1}`;
     if (!dustByCell.has(northKey)) {
