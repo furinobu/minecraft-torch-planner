@@ -476,9 +476,12 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
 function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   const { x, z, layer } = part;
   if (circuitId === "implication") return layer === 0 && x === 1 && z === 0 && !props.inputA;
-  if (circuitId === "XOR" && layer === 2) {
+  if (circuitId === "XOR") {
+    if (part.signal === "A") return !props.inputA;
+    if (part.signal === "B") return !props.inputB;
     if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
     if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
+    if (part.signal === "OUTPUT") return props.output;
   }
   if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {
     if (part.kind === "wall-torch") return props.output;
@@ -1154,7 +1157,7 @@ export default function RedstoneCircuit3D(props: Props) {
         <span><b>OUT</b> {props.output ? "1 · ON" : "0 · OFF"}</span>
         {(props.circuit?.id === "half-adder" || props.circuit?.id === "full-adder") && <span><b>CARRY</b> {props.secondaryOutput ? "1 · ON" : "0 · OFF"}</span>}
       </div>
-      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. The full Java block layout is shown." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && <>Reference layouts: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
+      <p className="redstone-3d-note">{props.circuit ? "Drag to rotate · scroll to zoom · click an in-scene input or use the controls below. The full Java block layout is shown." : props.clock ? "Drag to rotate · scroll to zoom. The adjacent controls show the clock phase and timing." : "Click an in-scene lever or use A/B above · drag to rotate · scroll to zoom."} {!props.circuit && props.gate !== "XOR" && <>Reference layouts: <a href="https://redstone.university/course/part-i--foundations/02_the-grammar-of-circuits/draft/" target="_blank" rel="noreferrer">Redstone University (fielding)</a> · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>.</>}</p>
     </div>
   );
 }

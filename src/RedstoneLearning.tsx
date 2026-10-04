@@ -253,7 +253,7 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This compact, tileable XOR has a lamp beside each input lever, two torch paths, and a separate output lamp. Flip A and B above to see the input lamps and active path update."}</p></div>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This five-torch XOR has two inputs on the raised right platform. Its exclusive signal paths step down and join at the output lamp on the left. Flip A and B above to see the active path update."}</p></div>
           <div className="redstone-build-preview">
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
@@ -264,13 +264,9 @@ export default function RedstoneLearning() {
               onInputToggle={(input) => input === "A" ? setInputA((value) => !value) : setInputB((value) => !value)}
             />
           </Suspense>
-          {gate === "XOR" && activeCircuitDefinition?.sourceImageUrl && <figure className="redstone-xor-reference">
-            <a href={activeCircuitDefinition.sourceUrl} target="_blank" rel="noreferrer"><img src={activeCircuitDefinition.sourceImageUrl} alt="Compact tileable torch-based XOR build reference" /></a>
-            <figcaption><span>Layout reference · Redstone University</span><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a></figcaption>
-          </figure>}
           </div>
           <div className="redstone-reference-links">
-            {activeCircuitDefinition && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.sourceUrl ? "Open the common tileable XOR build ↗" : activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
+            {activeCircuitDefinition && activeCircuitDefinition.id !== "XOR" && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
         </div>
       </section>}
