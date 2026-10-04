@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import type { RedstoneClock, RedstoneGate } from "./RedstoneCircuit3D";
 import CircuitBehaviorDemo from "./CircuitBehaviorDemo";
 import { CIRCUIT_CATEGORIES, REDSTONE_CIRCUITS } from "./redstoneCircuits";
+import { COMPACT_XOR_LAYOUT } from "./redstoneXorLayout";
+import type { LogicLayoutPart } from "./redstoneLogicLayouts";
+import XorLayoutEditor from "./XorLayoutEditor";
 
 const RedstoneCircuit3D = lazy(() => import("./RedstoneCircuit3D"));
 
@@ -33,6 +36,19 @@ const LEARNING_ITEMS = [
   { id: "ram", title: "4 × 8 RAM", summary: "Write and read four 8-bit words." },
   { id: "cpu", title: "8-bit CPU", summary: "Trace a tiny program through the datapath." },
 ];
+
+const XOR_LAYOUT_STORAGE_KEY = "minecraft-torch-planner:xor-layout:v1";
+
+function loadXorLayout() {
+  const saved = window.localStorage.getItem(XOR_LAYOUT_STORAGE_KEY);
+  if (!saved) return COMPACT_XOR_LAYOUT;
+  try {
+    const layout = JSON.parse(saved);
+    return Array.isArray(layout) ? layout as LogicLayoutPart[] : COMPACT_XOR_LAYOUT;
+  } catch {
+    return COMPACT_XOR_LAYOUT;
+  }
+}
 
 const CIRCUIT_GROUPS = [
   ...CIRCUIT_CATEGORIES.map((name) => ({
@@ -90,6 +106,8 @@ export default function RedstoneLearning() {
     const selection = selectionFromUrl();
     return GATES.includes(selection as RedstoneGate) ? selection as RedstoneGate : "AND";
   });
+  const [xorLayout, setXorLayout] = useState<LogicLayoutPart[]>(loadXorLayout);
+  const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
   const [activeCircuit, setActiveCircuit] = useState(() => selectionFromUrl());
   const [circuitSearch, setCircuitSearch] = useState("");
   const [circuitCategory, setCircuitCategory] = useState("All circuits");
@@ -115,6 +133,10 @@ export default function RedstoneLearning() {
     }))
     .filter((group) => group.items.length > 0);
   const tableRows: Array<[number, number | null]> = gate === "NOT" ? [[0, null], [1, null]] : [[0, 0], [0, 1], [1, 0], [1, 1]];
+
+  useEffect(() => {
+    window.localStorage.setItem(XOR_LAYOUT_STORAGE_KEY, JSON.stringify(xorLayout));
+  }, [xorLayout]);
 
   const selectCircuit = (id: string) => {
     const nextUrl = selectionHref(id);
@@ -258,6 +280,7 @@ export default function RedstoneLearning() {
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
               gate={gate}
+              layout={gate === "XOR" ? xorLayout : undefined}
               inputA={inputA}
               inputB={inputB}
               output={output}
@@ -269,6 +292,22 @@ export default function RedstoneLearning() {
             {activeCircuitDefinition && activeCircuitDefinition.id !== "XOR" && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
           </div>
         </div>
+        {gate === "XOR" && <div className="redstone-layout-editor-section">
+          <div className="redstone-layout-editor-launch">
+            <div>
+              <span className="redstone-kicker">CUSTOMIZE THE GATE</span>
+              <p>Change block, torch, and redstone positions while the 3D view updates.</p>
+            </div>
+            <button className="small-button" type="button" aria-expanded={layoutEditorOpen} onClick={() => setLayoutEditorOpen((open) => !open)}>
+              {layoutEditorOpen ? "Close editor" : "Edit placement"}
+            </button>
+          </div>
+          {layoutEditorOpen && <XorLayoutEditor
+            layout={xorLayout}
+            onChange={setXorLayout}
+            onReset={() => setXorLayout(COMPACT_XOR_LAYOUT)}
+          />}
+        </div>}
       </section>}
 
       {activeClock && <section className="redstone-section panel clock-section" data-circuit-id={activeCircuit}>

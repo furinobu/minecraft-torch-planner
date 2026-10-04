@@ -67,6 +67,7 @@ export type RedstoneClock = "repeater-clock" | "torch-clock" | "comparator-clock
 type Props = {
   gate?: RedstoneGate;
   circuit?: CircuitDefinition;
+  layout?: LogicLayoutPart[];
   inputA: boolean;
   inputB: boolean;
   inputC?: boolean;
@@ -530,7 +531,7 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
 }
 
 function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
-  const parts = REDSTONE_LOGIC_LAYOUTS[circuitId];
+  const parts = props.layout ?? REDSTONE_LOGIC_LAYOUTS[circuitId];
   if (!parts) return false;
   root.userData.circuitId = circuitId;
   const maxX = Math.max(...parts.map((part) => part.x));
@@ -946,6 +947,7 @@ export default function RedstoneCircuit3D(props: Props) {
   const [failed, setFailed] = useState(false);
   const onInputToggleRef = useRef(props.onInputToggle);
   const sceneKeyRef = useRef<string | undefined>(undefined);
+  const layoutRef = useRef(props.layout);
 
   useEffect(() => {
     onInputToggleRef.current = props.onInputToggle;
@@ -1115,11 +1117,12 @@ export default function RedstoneCircuit3D(props: Props) {
   useEffect(() => {
     if (ready && engineRef.current) {
       const sceneKey = props.circuit?.id ?? props.clock ?? props.gate ?? "AND";
-      const shouldFitView = sceneKeyRef.current !== sceneKey;
+      const shouldFitView = sceneKeyRef.current !== sceneKey || layoutRef.current !== props.layout;
       sceneKeyRef.current = sceneKey;
+      layoutRef.current = props.layout;
       updateCircuit(engineRef.current, props, shouldFitView);
     }
-  }, [ready, props.gate, props.circuit?.id, props.inputA, props.inputB, props.inputC, props.select, props.output, props.secondaryOutput, props.value, props.stored, props.itemCount, props.sentCount, props.locked, props.extended, props.pulse, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
+  }, [ready, props.gate, props.circuit?.id, props.inputA, props.inputB, props.inputC, props.select, props.output, props.secondaryOutput, props.value, props.stored, props.itemCount, props.sentCount, props.locked, props.extended, props.pulse, props.layout, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
 
   const fallback = props.gate ? FALLBACKS[props.gate] : undefined;
   const circuitName = props.circuit?.title ?? (props.clock ? ({

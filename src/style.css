@@ -229,6 +229,45 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .redstone-build-card h3, .memory-concept h3 { margin: 5px 0 7px; color: #e3e7db; font: 600 12px 'Space Grotesk', sans-serif; }
 .redstone-build-card p, .memory-concept p { margin: 0; color: #969e90; font-size: 10px; line-height: 1.55; }
 .redstone-build-preview { display: grid; gap: 8px; min-width: 0; }
+.redstone-layout-editor-section { margin-top: 10px; overflow: hidden; border: 1px solid #353c32; border-radius: 6px; background: #1b201a; }
+.redstone-layout-editor-launch, .redstone-layout-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.redstone-layout-editor-launch { padding: 12px 14px; }
+.redstone-layout-editor-launch p, .redstone-layout-editor-heading p, .redstone-layout-tools p { margin: 5px 0 0; color: #879080; font-size: 9px; line-height: 1.5; }
+.redstone-layout-editor { padding: 14px; border-top: 1px solid #353c32; }
+.redstone-layout-editor-heading { align-items: flex-start; margin-bottom: 12px; }
+.redstone-layout-editor-heading h3 { margin: 4px 0 0; color: #e3e7db; font: 600 13px 'Space Grotesk', sans-serif; }
+.redstone-layout-editor-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.redstone-layout-editor .small-button:disabled { cursor: not-allowed; }
+.redstone-layout-editor-body { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; align-items: start; }
+.redstone-layout-tools { display: grid; align-content: start; gap: 5px; }
+.redstone-layout-label { margin-bottom: 3px; color: #75806e; font: 8px 'DM Mono', monospace; letter-spacing: .08em; }
+.redstone-layout-label.layer-label { margin-top: 10px; }
+.redstone-layout-tool { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid #3a4138; border-radius: 4px; background: #20251f; color: #adb5a7; font-size: 9px; text-align: left; cursor: pointer; }
+.redstone-layout-tool > span { display: grid; place-items: center; width: 17px; height: 17px; color: #e0e6d9; font-size: 12px; }
+.redstone-layout-tool.tool-torch > span { color: #ff6849; }
+.redstone-layout-tool.tool-dust > span { color: #ff3828; }
+.redstone-layout-tool.tool-erase > span { color: #d69f6e; }
+.redstone-layout-tool.selected { border-color: #887149; background: #30291e; color: #f0c376; }
+.redstone-layout-layer-control { display: grid; grid-template-columns: 27px minmax(40px, 1fr) 27px; align-items: center; gap: 4px; }
+.redstone-layout-layer-control button { height: 26px; border: 1px solid #3a4138; border-radius: 3px; background: #20251f; color: #d2d9ca; font-size: 15px; cursor: pointer; }
+.redstone-layout-layer-control button:disabled { color: #62695e; cursor: not-allowed; }
+.redstone-layout-layer-control strong { color: #f0c376; font: 9px 'DM Mono', monospace; text-align: center; }
+.redstone-layout-grid-scroll { max-width: 100%; overflow: auto; padding: 3px 0 8px; }
+.redstone-layout-grid { display: grid; grid-template-columns: 30px repeat(13, 34px); grid-auto-rows: 34px; gap: 3px; width: max-content; }
+.redstone-layout-grid-row { display: contents; }
+.redstone-layout-axis { display: grid; place-items: center; color: #7d8775; font: 8px 'DM Mono', monospace; }
+.redstone-layout-axis.corner { color: #b9c1b0; font-size: 7px; }
+.redstone-layout-cell { position: relative; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; overflow: hidden; border: 1px solid #32392f; border-radius: 3px; background: #171b16; cursor: crosshair; touch-action: none; }
+.redstone-layout-cell:hover { border-color: #b08a50; background: #24271f; }
+.redstone-layout-cell:focus-visible { z-index: 1; outline: 2px solid #f0c376; outline-offset: 1px; }
+.layout-cell-block { position: absolute; inset: 6px; border: 1px solid #aeb8a1; border-radius: 2px; background: linear-gradient(135deg, #e3e7dc 0 48%, #b2b9aa 49% 100%); }
+.layout-cell-dust { position: absolute; z-index: 1; left: 4px; right: 4px; top: 50%; height: 3px; background: #c12c26; box-shadow: 0 0 4px #ff3828; transform: translateY(-50%); }
+.layout-cell-dust::after { position: absolute; top: -4px; left: calc(50% - 1.5px); width: 3px; height: 11px; background: inherit; content: ""; }
+.layout-cell-torch { position: absolute; z-index: 1; top: 7px; left: calc(50% - 2px); width: 4px; height: 18px; border-radius: 2px; background: linear-gradient(#f05237 0 28%, #804c35 29% 100%); box-shadow: 0 0 5px #ff493d88; }
+.layout-cell-overhead { position: absolute; z-index: 2; right: 1px; bottom: 1px; display: grid; place-items: center; width: 11px; height: 11px; border-radius: 2px; background: #61705a; color: #edf4e7; font: 8px/1 'DM Mono', monospace; font-style: normal; }
+.layout-cell-fixed { position: absolute; z-index: 2; display: grid; place-items: center; top: 1px; right: 2px; width: 12px; height: 12px; border-radius: 2px; color: #192019; font: 7px 'DM Mono', monospace; }
+.fixed-lamp { background: #f0c376; }
+.fixed-lever { background: #9ca78e; }
 .redstone-3d-viewer { display: grid; align-content: start; gap: 8px; min-width: 0; }
 .redstone-xor-reference { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; margin: 10px 0 0; padding: 6px; border: 1px solid #41493e; border-radius: 4px; background: #10130f; }
 .redstone-xor-reference a { display: grid; place-items: center; min-width: 0; }
@@ -411,6 +450,12 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
   .redstone-lesson-nav a { flex: 1; justify-content: center; }
   .redstone-section { padding: 16px; }
   .gate-lab, .redstone-build-card, .ram-demo, .memory-build-grid, .cpu-details, .cpu-program { grid-template-columns: 1fr; }
+  .redstone-layout-editor-launch, .redstone-layout-editor-heading { align-items: flex-start; flex-direction: column; }
+  .redstone-layout-editor-body { grid-template-columns: minmax(0, 1fr); }
+  .redstone-layout-tools { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
+  .redstone-layout-label, .redstone-layout-label.layer-label, .redstone-layout-tools > p, .redstone-layout-layer-control { grid-column: 1 / -1; }
+  .redstone-layout-label.layer-label { margin-top: 6px; }
+  .redstone-layout-editor-actions { justify-content: flex-start; }
   .clock-demo-grid { grid-template-columns: minmax(0, 1fr); }
   .latch-demo, .counter-demo, .pulse-demo { grid-template-columns: minmax(0, 1fr); }
   .latch-demo > a, .pulse-demo > a { grid-column: auto; }
