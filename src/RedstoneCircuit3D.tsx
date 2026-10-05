@@ -338,6 +338,26 @@ function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: numb
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
 
+function addLayoutPiston(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, pistonType: "normal" | "sticky", extended: boolean) {
+  const piston = new THREE.Group();
+  piston.position.set(x, y + 0.46, z);
+  piston.rotation.y = logicFacingAngle(facing);
+  root.add(piston);
+
+  box(THREE, piston, 0, 0, 0, 0.92, 0.92, 0.92, 0x958b70);
+  box(THREE, piston, -0.24, 0, 0.465, 0.38, 0.68, 0.035, 0x716a56);
+  box(THREE, piston, 0.24, 0, 0.465, 0.38, 0.68, 0.035, 0x716a56);
+
+  const faceColor = pistonType === "sticky" ? 0x82a34f : 0xa6a18e;
+  if (extended) {
+    box(THREE, piston, 0.72, 0, 0, 0.58, 0.22, 0.22, 0xaaa58f);
+    box(THREE, piston, 1, 0, 0, 0.92, 0.82, 0.82, 0x958b70);
+    box(THREE, piston, 1.47, 0, 0, 0.035, 0.68, 0.68, faceColor);
+  } else {
+    box(THREE, piston, 0.47, 0, 0, 0.035, 0.72, 0.72, faceColor);
+  }
+}
+
 function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string, mount?: "wall") {
   const lever = new THREE.Group();
   const angle = logicFacingAngle(facing);
@@ -578,6 +598,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   for (const part of parts) {
     const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
     if (part.kind === "stone") addLayoutStone(THREE, root, x, y, z);
+    if (part.kind === "piston") addLayoutPiston(THREE, root, x, y, z, part.facing, part.pistonType ?? "normal", Boolean(part.extended));
     if (part.kind === "lever") {
       const cell = `${part.layer}:${part.x}:${part.z}`;
       if (!stoneCells.has(cell) && !lampCells.has(cell)) addLayoutStone(THREE, root, x, y, z);

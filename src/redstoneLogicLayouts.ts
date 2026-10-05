@@ -3,11 +3,13 @@ import { COMPACT_XOR_LAYOUT } from "./redstoneXorLayout";
 // Source circuit pages are linked in each circuit preview.
 export type LogicLayoutPart = {
   layer: number;
-  kind: "lever" | "dust" | "stone" | "wall-torch" | "torch" | "repeater" | "comparator" | "lamp";
+  kind: "lever" | "dust" | "stone" | "wall-torch" | "torch" | "repeater" | "comparator" | "piston" | "lamp";
   x: number;
   z: number;
   facing?: string;
   comparatorMode?: "compare" | "subtract";
+  pistonType?: "normal" | "sticky";
+  extended?: boolean;
   mount?: "wall";
   powered?: boolean;
   input?: "A" | "B" | "C" | "SEL";
