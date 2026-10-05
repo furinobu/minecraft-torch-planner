@@ -389,7 +389,7 @@ function addLayoutTorch(THREE: Three, root: Group, x: number, y: number, z: numb
     powered ? 0xff7640 : 0x693c32, { emissive: powered ? 0xff3417 : 0, intensity: powered ? 1.2 : 0 });
 }
 
-function addLayoutRepeater(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, powered: boolean, comparator = false) {
+function addLayoutRepeater(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, powered: boolean, comparator = false, comparatorMode: "compare" | "subtract" = "compare") {
   const component = new THREE.Group();
   component.position.set(x, y + 0.06, z);
   component.rotation.y = logicFacingAngle(facing);
@@ -399,8 +399,10 @@ function addLayoutRepeater(THREE: Three, root: Group, x: number, y: number, z: n
     powered ? 0xff4936 : 0x5d2420, { outline: false });
   const postXs = comparator ? [-0.2, 0, 0.2] : [-0.18, 0.18];
   for (const postX of postXs) {
+    const modeTorch = comparator && postX === 0.2;
+    const postPowered = powered || (modeTorch && comparatorMode === "subtract");
     box(THREE, component, postX, 0.17, 0, 0.07, 0.08, 0.08,
-      powered ? 0xff7143 : 0x754a37, { emissive: powered ? 0xc72d18 : 0, intensity: powered ? 0.35 : 0 });
+      postPowered ? 0xff7143 : 0x754a37, { emissive: postPowered ? 0xc72d18 : 0, intensity: postPowered ? 0.35 : 0 });
   }
 }
 
@@ -588,7 +590,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     }
     if (part.kind === "repeater" || part.kind === "comparator") {
       const powered = logicComponentPowered(part, props, circuitId);
-      addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator");
+      addLayoutRepeater(THREE, root, x, y, z, part.facing, powered, part.kind === "comparator", part.comparatorMode ?? "compare");
     }
     if (part.kind === "lamp") {
       const powered = circuitId === "XOR"

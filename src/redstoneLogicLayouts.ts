@@ -7,6 +7,7 @@ export type LogicLayoutPart = {
   x: number;
   z: number;
   facing?: string;
+  comparatorMode?: "compare" | "subtract";
   mount?: "wall";
   powered?: boolean;
   input?: "A" | "B" | "C" | "SEL";

@@ -246,12 +246,18 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .redstone-layout-tool > span { display: grid; place-items: center; width: 17px; height: 17px; color: #e0e6d9; font-size: 12px; }
 .redstone-layout-tool.tool-torch > span { color: #ff6849; }
 .redstone-layout-tool.tool-dust > span { color: #ff3828; }
+.redstone-layout-tool.tool-comparator > span { color: #e0bf74; }
 .redstone-layout-tool.tool-erase > span { color: #d69f6e; }
 .redstone-layout-tool.selected { border-color: #887149; background: #30291e; color: #f0c376; }
 .redstone-layout-layer-control { display: grid; grid-template-columns: 27px minmax(40px, 1fr) 27px; align-items: center; gap: 4px; }
 .redstone-layout-layer-control button { height: 26px; border: 1px solid #3a4138; border-radius: 3px; background: #20251f; color: #d2d9ca; font-size: 15px; cursor: pointer; }
 .redstone-layout-layer-control button:disabled { color: #62695e; cursor: not-allowed; }
 .redstone-layout-layer-control strong { color: #f0c376; font: 9px 'DM Mono', monospace; text-align: center; }
+.redstone-layout-facing-control, .redstone-layout-mode-control { display: grid; grid-column: 1 / -1; gap: 4px; }
+.redstone-layout-facing-control { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.redstone-layout-mode-control { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.redstone-layout-facing-control button, .redstone-layout-mode-control button { min-width: 0; min-height: 26px; padding: 4px; border: 1px solid #3a4138; border-radius: 3px; background: #20251f; color: #aeb7a7; font: 8px 'DM Mono', monospace; cursor: pointer; }
+.redstone-layout-facing-control button.selected, .redstone-layout-mode-control button.selected { border-color: #887149; background: #30291e; color: #f0c376; }
 .redstone-layout-grid-scroll { max-width: 100%; overflow: auto; padding: 3px 0 8px; }
 .redstone-layout-grid { display: grid; grid-template-columns: 30px repeat(13, 34px); grid-auto-rows: 34px; gap: 3px; width: max-content; }
 .redstone-layout-grid-row { display: contents; }
@@ -264,6 +270,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .layout-cell-dust { position: absolute; z-index: 1; left: 4px; right: 4px; top: 50%; height: 3px; background: #c12c26; box-shadow: 0 0 4px #ff3828; transform: translateY(-50%); }
 .layout-cell-dust::after { position: absolute; top: -4px; left: calc(50% - 1.5px); width: 3px; height: 11px; background: inherit; content: ""; }
 .layout-cell-torch { position: absolute; z-index: 1; top: 7px; left: calc(50% - 2px); width: 4px; height: 18px; border-radius: 2px; background: linear-gradient(#f05237 0 28%, #804c35 29% 100%); box-shadow: 0 0 5px #ff493d88; }
+.layout-cell-comparator { position: absolute; z-index: 1; inset: 8px 5px; display: grid; place-items: center; border: 1px solid #a09d82; border-radius: 3px; background: #77796b; color: #ff6849; font: 7px 'DM Mono', monospace; font-style: normal; }
 .layout-cell-overhead { position: absolute; z-index: 2; right: 1px; bottom: 1px; display: grid; place-items: center; width: 11px; height: 11px; border-radius: 2px; background: #61705a; color: #edf4e7; font: 8px/1 'DM Mono', monospace; font-style: normal; }
 .layout-cell-fixed { position: absolute; z-index: 2; display: grid; place-items: center; top: 1px; right: 2px; width: 12px; height: 12px; border-radius: 2px; color: #192019; font: 7px 'DM Mono', monospace; }
 .fixed-lamp { background: #f0c376; }

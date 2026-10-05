@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LogicLayoutPart } from "./redstoneLogicLayouts";
 
-type Tool = "stone" | "torch" | "dust" | "erase";
+type Tool = "stone" | "torch" | "dust" | "comparator" | "erase";
 
 type Props = {
   layout: LogicLayoutPart[];
@@ -12,17 +12,21 @@ type Props = {
 const X_CELLS = Array.from({ length: 13 }, (_, index) => index - 2);
 const Z_CELLS = Array.from({ length: 7 }, (_, index) => index - 2);
 const MAX_LAYER = 4;
+const FACINGS = ["north", "east", "south", "west"] as const;
 
 const TOOLS: Array<{ id: Tool; label: string; symbol: string }> = [
   { id: "stone", label: "Block", symbol: "■" },
   { id: "torch", label: "Torch", symbol: "♨" },
   { id: "dust", label: "Redstone", symbol: "━" },
+  { id: "comparator", label: "Comparator", symbol: "◈" },
   { id: "erase", label: "Erase", symbol: "×" },
 ];
 
 export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
   const [tool, setTool] = useState<Tool>("stone");
   const [layer, setLayer] = useState(0);
+  const [comparatorFacing, setComparatorFacing] = useState<(typeof FACINGS)[number]>("east");
+  const [comparatorMode, setComparatorMode] = useState<"compare" | "subtract">("compare");
   const [history, setHistory] = useState<LogicLayoutPart[][]>([]);
   const [painting, setPainting] = useState(false);
 
@@ -45,7 +49,8 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     const blockAtLevel = layout.some((part) => part.kind === "stone" && part.layer === layer && part.x === x && part.z === z);
     const blockAbove = layout.some((part) => part.kind === "stone" && part.layer === layer + 1 && part.x === x && part.z === z);
     const componentAtLevel = layout.find((part) =>
-      (part.kind === "dust" || part.kind === "torch") && part.layer === layer + 1 && part.x === x && part.z === z,
+      (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
+      && part.layer === layer + 1 && part.x === x && part.z === z,
     );
     const fixedLamp = layout.some((part) => part.kind === "lamp" && part.layer === layer && part.x === x && part.z === z);
     const fixedLeverAtLevel = layout.some((part) => part.kind === "lever" && part.layer === layer && part.x === x && part.z === z);
@@ -55,7 +60,7 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
       const nextLayout = layout.filter((part) => !(
         part.x === x && part.z === z && (
           part.kind === "stone" && part.layer === layer && !fixedLeverAtLevel
-          || (part.kind === "dust" || part.kind === "torch") && part.layer === layer + 1
+          || (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator") && part.layer === layer + 1
         )
       ));
       if (nextLayout.length !== layout.length) commit(nextLayout);
@@ -65,21 +70,28 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     if (tool === "stone") {
       if (blockAtLevel || fixedLamp) return;
       const withoutComponent = layout.filter((part) => !(
-        part.x === x && part.z === z && part.layer === layer && (part.kind === "dust" || part.kind === "torch")
+        part.x === x && part.z === z && part.layer === layer
+        && (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
       ));
       commit([...withoutComponent, { layer, kind: "stone", x, z }]);
       return;
     }
 
-    if (componentAtLevel?.kind === tool) return;
+    if (tool === "comparator" && componentAtLevel?.kind === "comparator"
+      && componentAtLevel.facing === comparatorFacing && componentAtLevel.comparatorMode === comparatorMode) return;
+    if (tool !== "comparator" && componentAtLevel?.kind === tool) return;
     if (blockAbove || fixedLeverAbove) return;
     const withoutComponent = layout.filter((part) => !(
-      part.x === x && part.z === z && part.layer === layer + 1 && (part.kind === "dust" || part.kind === "torch")
+      part.x === x && part.z === z && part.layer === layer + 1
+      && (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
     ));
     const withSupport = blockAtLevel || fixedLamp
       ? withoutComponent
       : [...withoutComponent, { layer, kind: "stone" as const, x, z }];
-    commit([...withSupport, { layer: layer + 1, kind: tool, x, z, signal: "OUTPUT" }]);
+    const component: LogicLayoutPart = tool === "comparator"
+      ? { layer: layer + 1, kind: "comparator", x, z, facing: comparatorFacing, comparatorMode }
+      : { layer: layer + 1, kind: tool, x, z, signal: "OUTPUT" };
+    commit([...withSupport, component]);
   };
 
   const undo = () => {
@@ -103,6 +115,8 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     setHistory([]);
     setLayer(0);
     setTool("stone");
+    setComparatorFacing("east");
+    setComparatorMode("compare");
     onReset();
   };
 
@@ -142,7 +156,18 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
             <strong>Y {layer}</strong>
             <button type="button" aria-label="Raise block layer" disabled={layer === MAX_LAYER} onClick={() => setLayer((value) => Math.min(MAX_LAYER, value + 1))}>+</button>
           </div>
-          <p>Dust and torches sit on this layer’s blocks.</p>
+          {tool === "comparator" && <>
+            <span className="redstone-layout-label layer-label">FACING</span>
+            <div className="redstone-layout-facing-control" role="group" aria-label="Comparator facing">
+              {FACINGS.map((facing) => <button key={facing} type="button" className={comparatorFacing === facing ? "selected" : ""} aria-label={`Face ${facing}`} aria-pressed={comparatorFacing === facing} onClick={() => setComparatorFacing(facing)}>{facing[0].toUpperCase()}</button>)}
+            </div>
+            <span className="redstone-layout-label layer-label">MODE</span>
+            <div className="redstone-layout-mode-control" role="group" aria-label="Comparator mode">
+              <button type="button" className={comparatorMode === "compare" ? "selected" : ""} aria-pressed={comparatorMode === "compare"} onClick={() => setComparatorMode("compare")}>Compare</button>
+              <button type="button" className={comparatorMode === "subtract" ? "selected" : ""} aria-pressed={comparatorMode === "subtract"} onClick={() => setComparatorMode("subtract")}>Subtract</button>
+            </div>
+          </>}
+          <p>{tool === "comparator" ? "Click a cell to place the comparator on this layer’s support block." : "Dust and torches sit on this layer’s blocks."}</p>
         </div>
 
         <div className="redstone-layout-grid-scroll">
@@ -155,7 +180,8 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
                 {X_CELLS.map((x) => {
                   const block = layout.some((part) => part.kind === "stone" && part.layer === layer && part.x === x && part.z === z);
                   const component = layout.find((part) =>
-                    (part.kind === "dust" || part.kind === "torch") && part.layer === layer + 1 && part.x === x && part.z === z,
+                    (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
+                    && part.layer === layer + 1 && part.x === x && part.z === z,
                   );
                   const blockAbove = layout.some((part) => part.kind === "stone" && part.layer === layer + 1 && part.x === x && part.z === z);
                   const fixed = layout.find((part) =>
@@ -184,6 +210,7 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
                       {block && <i className="layout-cell-block" aria-hidden="true" />}
                       {component?.kind === "dust" && <i className="layout-cell-dust" aria-hidden="true" />}
                       {component?.kind === "torch" && <i className="layout-cell-torch" aria-hidden="true" />}
+                      {component?.kind === "comparator" && <i className="layout-cell-comparator" aria-hidden="true">C</i>}
                       {blockAbove && <i className="layout-cell-overhead" aria-hidden="true">↑</i>}
                       {fixed && <i className={`layout-cell-fixed fixed-${fixed.kind}`} aria-hidden="true">{fixed.kind === "lamp" ? "L" : "↗"}</i>}
                     </button>
