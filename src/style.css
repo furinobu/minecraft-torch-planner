@@ -248,6 +248,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .redstone-layout-tool.tool-dust > span { color: #ff3828; }
 .redstone-layout-tool.tool-comparator > span { color: #e0bf74; }
 .redstone-layout-tool.tool-piston > span { color: #a8bd72; }
+.redstone-layout-tool.tool-dropper > span, .redstone-layout-tool.tool-hopper > span, .redstone-layout-tool.tool-observer > span { color: #a8b5a6; }
 .redstone-layout-tool.tool-erase > span { color: #d69f6e; }
 .redstone-layout-tool.selected { border-color: #887149; background: #30291e; color: #f0c376; }
 .redstone-layout-layer-control { display: grid; grid-template-columns: 27px minmax(40px, 1fr) 27px; align-items: center; gap: 4px; }
@@ -275,6 +276,9 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .layout-cell-piston { position: absolute; z-index: 1; inset: 5px; display: grid; place-items: center; border: 1px solid #9a8f72; border-radius: 3px; background: linear-gradient(135deg, #aca183 0 48%, #81765e 49% 100%); color: #22251e; font: 8px 'DM Mono', monospace; font-style: normal; }
 .layout-cell-piston.sticky { border-color: #8b9c5f; background: linear-gradient(135deg, #a8b878 0 48%, #6e804a 49% 100%); }
 .layout-cell-piston b { position: absolute; top: -6px; right: -4px; color: #f0c376; font: 9px 'DM Mono', monospace; }
+.layout-cell-machine { position: absolute; z-index: 1; inset: 5px; display: grid; place-items: center; border: 1px solid #9da397; border-radius: 3px; background: linear-gradient(135deg, #a9aea5 0 48%, #767d75 49% 100%); color: #20251f; font: 9px 'DM Mono', monospace; font-style: normal; }
+.layout-cell-machine.machine-hopper { border-color: #c0c5b8; background: linear-gradient(180deg, #b8beb3 0 38%, #777d76 39% 100%); }
+.layout-cell-machine.machine-observer { border-color: #b2b7af; background: linear-gradient(135deg, #c1c4ba 0 48%, #858b84 49% 100%); color: #913329; }
 .layout-cell-overhead { position: absolute; z-index: 2; right: 1px; bottom: 1px; display: grid; place-items: center; width: 11px; height: 11px; border-radius: 2px; background: #61705a; color: #edf4e7; font: 8px/1 'DM Mono', monospace; font-style: normal; }
 .layout-cell-fixed { position: absolute; z-index: 2; display: grid; place-items: center; top: 1px; right: 2px; width: 12px; height: 12px; border-radius: 2px; color: #192019; font: 7px 'DM Mono', monospace; }
 .fixed-lamp { background: #f0c376; }

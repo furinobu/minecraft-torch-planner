@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { LogicLayoutPart } from "./redstoneLogicLayouts";
 
-type Tool = "stone" | "torch" | "dust" | "comparator" | "piston" | "erase";
+type Tool = "stone" | "torch" | "dust" | "comparator" | "piston" | "dropper" | "hopper" | "observer" | "erase";
 
 type Props = {
   layout: LogicLayoutPart[];
@@ -13,7 +13,9 @@ const X_CELLS = Array.from({ length: 13 }, (_, index) => index - 2);
 const Z_CELLS = Array.from({ length: 7 }, (_, index) => index - 2);
 const MAX_LAYER = 4;
 const FACINGS = ["north", "east", "south", "west"] as const;
+const MACHINE_FACINGS = ["north", "east", "south", "west", "up", "down"] as const;
 const FACING_ARROWS: Record<(typeof FACINGS)[number], string> = { north: "↑", east: "→", south: "↓", west: "←" };
+const SOLID_KINDS = new Set(["stone", "piston", "dropper", "hopper", "observer"]);
 
 const TOOLS: Array<{ id: Tool; label: string; symbol: string }> = [
   { id: "stone", label: "Block", symbol: "■" },
@@ -21,6 +23,9 @@ const TOOLS: Array<{ id: Tool; label: string; symbol: string }> = [
   { id: "dust", label: "Redstone", symbol: "━" },
   { id: "comparator", label: "Comparator", symbol: "◈" },
   { id: "piston", label: "Piston", symbol: "▰" },
+  { id: "dropper", label: "Dropper", symbol: "▣" },
+  { id: "hopper", label: "Hopper", symbol: "▽" },
+  { id: "observer", label: "Observer", symbol: "◉" },
   { id: "erase", label: "Erase", symbol: "×" },
 ];
 
@@ -32,6 +37,9 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
   const [pistonFacing, setPistonFacing] = useState<(typeof FACINGS)[number]>("east");
   const [pistonType, setPistonType] = useState<"normal" | "sticky">("normal");
   const [pistonExtended, setPistonExtended] = useState(false);
+  const [dropperFacing, setDropperFacing] = useState<(typeof MACHINE_FACINGS)[number]>("up");
+  const [hopperFacing, setHopperFacing] = useState<(typeof MACHINE_FACINGS)[number]>("down");
+  const [observerFacing, setObserverFacing] = useState<(typeof MACHINE_FACINGS)[number]>("east");
   const [history, setHistory] = useState<LogicLayoutPart[][]>([]);
   const [painting, setPainting] = useState(false);
 
@@ -52,8 +60,8 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
 
   const placeAt = (x: number, z: number) => {
     const stoneAtLevel = layout.some((part) => part.kind === "stone" && part.layer === layer && part.x === x && part.z === z);
-    const blockAtLevel = layout.some((part) => (part.kind === "stone" || part.kind === "piston") && part.layer === layer && part.x === x && part.z === z);
-    const blockAbove = layout.some((part) => (part.kind === "stone" || part.kind === "piston") && part.layer === layer + 1 && part.x === x && part.z === z);
+    const blockAtLevel = layout.some((part) => SOLID_KINDS.has(part.kind) && part.layer === layer && part.x === x && part.z === z);
+    const blockAbove = layout.some((part) => SOLID_KINDS.has(part.kind) && part.layer === layer + 1 && part.x === x && part.z === z);
     const componentAtLevel = layout.find((part) =>
       (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
       && part.layer === layer + 1 && part.x === x && part.z === z,
@@ -65,8 +73,7 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     if (tool === "erase") {
       const nextLayout = layout.filter((part) => !(
         part.x === x && part.z === z && (
-          part.kind === "stone" && part.layer === layer && !fixedLeverAtLevel
-          || part.kind === "piston" && part.layer === layer && !fixedLeverAtLevel
+          SOLID_KINDS.has(part.kind) && part.layer === layer && !fixedLeverAtLevel
           || (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator") && part.layer === layer + 1
         )
       ));
@@ -78,21 +85,27 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
       if (stoneAtLevel || fixedLamp) return;
       const withoutComponent = layout.filter((part) => !(
         part.x === x && part.z === z && part.layer === layer
-        && (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator" || part.kind === "piston")
+        && (SOLID_KINDS.has(part.kind) || part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
       ));
       commit([...withoutComponent, { layer, kind: "stone", x, z }]);
       return;
     }
 
-    if (tool === "piston") {
-      const currentPiston = layout.find((part) => part.kind === "piston" && part.layer === layer && part.x === x && part.z === z);
+    if (tool === "piston" || tool === "dropper" || tool === "hopper" || tool === "observer") {
+      const currentMachine = layout.find((part) => part.kind === tool && part.layer === layer && part.x === x && part.z === z);
       if (fixedLamp || fixedLeverAtLevel) return;
-      if (currentPiston?.facing === pistonFacing && currentPiston.pistonType === pistonType && Boolean(currentPiston.extended) === pistonExtended) return;
+      const facing = tool === "piston" ? pistonFacing : tool === "dropper" ? dropperFacing : tool === "hopper" ? hopperFacing : observerFacing;
+      if (tool === "piston" && currentMachine?.facing === facing && currentMachine.pistonType === pistonType
+        && Boolean(currentMachine.extended) === pistonExtended) return;
+      if (tool !== "piston" && currentMachine?.facing === facing) return;
       const withoutBlock = layout.filter((part) => !(
         part.x === x && part.z === z && part.layer === layer
-        && (part.kind === "stone" || part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator" || part.kind === "piston")
+        && (SOLID_KINDS.has(part.kind) || part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
       ));
-      commit([...withoutBlock, { layer, kind: "piston", x, z, facing: pistonFacing, pistonType, extended: pistonExtended }]);
+      const machine: LogicLayoutPart = tool === "piston"
+        ? { layer, kind: "piston", x, z, facing: pistonFacing, pistonType, extended: pistonExtended }
+        : { layer, kind: tool, x, z, facing };
+      commit([...withoutBlock, machine]);
       return;
     }
 
@@ -102,14 +115,14 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     if (blockAbove || fixedLeverAbove) return;
     const withoutComponent = layout.filter((part) => !(
       part.x === x && part.z === z && part.layer === layer + 1
-        && (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator" || part.kind === "piston")
+        && (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
     ));
     const withSupport = blockAtLevel || fixedLamp
       ? withoutComponent
       : [...withoutComponent, { layer, kind: "stone" as const, x, z }];
     const component: LogicLayoutPart = tool === "comparator"
       ? { layer: layer + 1, kind: "comparator", x, z, facing: comparatorFacing, comparatorMode }
-      : { layer: layer + 1, kind: tool, x, z, signal: "OUTPUT" };
+      : { layer: layer + 1, kind: tool as "torch" | "dust", x, z, signal: "OUTPUT" };
     commit([...withSupport, component]);
   };
 
@@ -139,6 +152,9 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
     setPistonFacing("east");
     setPistonType("normal");
     setPistonExtended(false);
+    setDropperFacing("up");
+    setHopperFacing("down");
+    setObserverFacing("east");
     onReset();
   };
 
@@ -178,12 +194,21 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
             <strong>Y {layer}</strong>
             <button type="button" aria-label="Raise block layer" disabled={layer === MAX_LAYER} onClick={() => setLayer((value) => Math.min(MAX_LAYER, value + 1))}>+</button>
           </div>
-          {(tool === "comparator" || tool === "piston") && <>
+          {(tool === "comparator" || tool === "piston" || tool === "dropper" || tool === "hopper" || tool === "observer") && <>
             <span className="redstone-layout-label layer-label">FACING</span>
-            <div className="redstone-layout-facing-control" role="group" aria-label={`${tool === "piston" ? "Piston" : "Comparator"} facing`}>
-              {FACINGS.map((facing) => {
-                const selected = tool === "piston" ? pistonFacing === facing : comparatorFacing === facing;
-                return <button key={facing} type="button" className={selected ? "selected" : ""} aria-label={`Face ${facing}`} aria-pressed={selected} onClick={() => tool === "piston" ? setPistonFacing(facing) : setComparatorFacing(facing)}>{facing[0].toUpperCase()}</button>;
+            <div className="redstone-layout-facing-control" role="group" aria-label={`${tool[0].toUpperCase()}${tool.slice(1)} facing`}>
+              {(tool === "dropper" || tool === "hopper" || tool === "observer" ? MACHINE_FACINGS : FACINGS).map((facing) => {
+                const selected = tool === "piston" ? pistonFacing === facing
+                  : tool === "comparator" ? comparatorFacing === facing
+                    : tool === "dropper" ? dropperFacing === facing
+                      : tool === "hopper" ? hopperFacing === facing : observerFacing === facing;
+                return <button key={facing} type="button" className={selected ? "selected" : ""} aria-label={`Face ${facing}`} aria-pressed={selected} onClick={() => {
+                  if (tool === "piston") setPistonFacing(facing as (typeof FACINGS)[number]);
+                  else if (tool === "comparator") setComparatorFacing(facing as (typeof FACINGS)[number]);
+                  else if (tool === "dropper") setDropperFacing(facing as (typeof MACHINE_FACINGS)[number]);
+                  else if (tool === "hopper") setHopperFacing(facing as (typeof MACHINE_FACINGS)[number]);
+                  else if (tool === "observer") setObserverFacing(facing as (typeof MACHINE_FACINGS)[number]);
+                }}>{facing[0].toUpperCase()}</button>;
               })}
             </div>
           </>}
@@ -206,7 +231,7 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
               <button type="button" className={pistonExtended ? "selected" : ""} aria-pressed={pistonExtended} onClick={() => setPistonExtended(true)}>Extended</button>
             </div>
           </>}
-          <p>{tool === "comparator" ? "Click a cell to place the comparator on this layer’s support block." : tool === "piston" ? "Click a cell to place a piston block at this layer." : "Dust and torches sit on this layer’s blocks."}</p>
+          <p>{tool === "comparator" ? "Click a cell to place the comparator on this layer’s support block." : tool === "piston" || tool === "dropper" || tool === "hopper" || tool === "observer" ? `Click a cell to place the ${tool} at this layer.` : "Dust and torches sit on this layer’s blocks."}</p>
         </div>
 
         <div className="redstone-layout-grid-scroll">
@@ -217,19 +242,21 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
               <div className="redstone-layout-grid-row" role="row" key={`z-${z}`}>
                 <span className="redstone-layout-axis" aria-hidden="true">{z}</span>
                 {X_CELLS.map((x) => {
-                  const piston = layout.find((part) => part.kind === "piston" && part.layer === layer && part.x === x && part.z === z);
-                  const stone = layout.some((part) => part.kind === "stone" && part.layer === layer && part.x === x && part.z === z);
-                  const block = stone || Boolean(piston);
+                  const solid = layout.find((part) => SOLID_KINDS.has(part.kind) && part.layer === layer && part.x === x && part.z === z);
+                  const piston = solid?.kind === "piston" ? solid : undefined;
+                  const machine = solid && solid.kind !== "stone" ? solid : undefined;
+                  const stone = solid?.kind === "stone";
+                  const block = Boolean(solid);
                   const component = layout.find((part) =>
                     (part.kind === "dust" || part.kind === "torch" || part.kind === "repeater" || part.kind === "comparator")
                     && part.layer === layer + 1 && part.x === x && part.z === z,
                   );
-                  const blockAbove = layout.some((part) => (part.kind === "stone" || part.kind === "piston") && part.layer === layer + 1 && part.x === x && part.z === z);
+                  const blockAbove = layout.some((part) => SOLID_KINDS.has(part.kind) && part.layer === layer + 1 && part.x === x && part.z === z);
                   const fixed = layout.find((part) =>
                     (part.kind === "lamp" && part.layer === layer || part.kind === "lever" && (part.layer === layer || part.layer === layer + 1))
                     && part.x === x && part.z === z,
                   );
-                  const label = [piston ? "piston" : stone ? "block" : "", component?.kind === "dust" ? "redstone" : component?.kind ?? "", blockAbove ? "block above" : "", fixed?.kind ?? ""]
+                  const label = [machine?.kind ?? (stone ? "block" : ""), component?.kind === "dust" ? "redstone" : component?.kind ?? "", blockAbove ? "block above" : "", fixed?.kind ?? ""]
                     .filter(Boolean).join(" and ") || "empty";
                   return (
                     <button
@@ -250,6 +277,7 @@ export default function XorLayoutEditor({ layout, onChange, onReset }: Props) {
                     >
                       {stone && <i className="layout-cell-block" aria-hidden="true" />}
                       {piston && <i className={`layout-cell-piston ${piston.pistonType === "sticky" ? "sticky" : ""}`} aria-hidden="true">P{piston.extended && <b>{FACING_ARROWS[piston.facing as (typeof FACINGS)[number]] ?? "→"}</b>}</i>}
+                      {machine && machine.kind !== "piston" && <i className={`layout-cell-machine machine-${machine.kind}`} aria-hidden="true">{machine.kind === "dropper" ? "D" : machine.kind === "hopper" ? "H" : "O"}</i>}
                       {component?.kind === "dust" && <i className="layout-cell-dust" aria-hidden="true" />}
                       {component?.kind === "torch" && <i className="layout-cell-torch" aria-hidden="true" />}
                       {component?.kind === "comparator" && <i className="layout-cell-comparator" aria-hidden="true">C</i>}

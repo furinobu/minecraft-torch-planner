@@ -323,6 +323,12 @@ function logicFacingAngle(facing = "east") {
   return 0;
 }
 
+function orientDirectionalBlock(group: Group, facing = "east") {
+  if (facing === "up") group.rotation.z = Math.PI / 2;
+  else if (facing === "down") group.rotation.z = -Math.PI / 2;
+  else group.rotation.y = logicFacingAngle(facing);
+}
+
 function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number) {
   return {
     x: (part.x - offsetX) * LOGIC_CELL,
@@ -356,6 +362,63 @@ function addLayoutPiston(THREE: Three, root: Group, x: number, y: number, z: num
   } else {
     box(THREE, piston, 0.47, 0, 0, 0.035, 0.72, 0.72, faceColor);
   }
+}
+
+function addLayoutDropper(THREE: Three, root: Group, x: number, y: number, z: number, facing = "up") {
+  const dropper = new THREE.Group();
+  dropper.position.set(x, y + 0.46, z);
+  orientDirectionalBlock(dropper, facing);
+  root.add(dropper);
+  box(THREE, dropper, 0, 0, 0, 0.92, 0.92, 0.92, 0x777c78);
+  box(THREE, dropper, 0.475, 0, 0, 0.035, 0.42, 0.42, 0x282d2b, { outline: false });
+  box(THREE, dropper, 0.5, 0, 0, 0.025, 0.16, 0.16, 0x171b1a, { outline: false });
+}
+
+function addLayoutHopper(THREE: Three, root: Group, x: number, y: number, z: number, facing = "down") {
+  const funnel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.44, 0.2, 0.42, 4, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0x858980, roughness: 0.72, metalness: 0.28, side: 2 }),
+  );
+  funnel.position.set(x, y + 0.54, z);
+  funnel.rotation.y = Math.PI / 4;
+  root.add(funnel);
+  box(THREE, root, x, y + 0.31, z, 0.34, 0.035, 0.34, 0x373c38, { outline: false });
+  if (facing === "down") box(THREE, root, x, y + 0.12, z, 0.26, 0.24, 0.26, 0x777c78);
+  else if (facing === "up") box(THREE, root, x, y + 0.98, z, 0.26, 0.24, 0.26, 0x777c78);
+  else {
+    const angle = logicFacingAngle(facing);
+    const dx = Math.cos(angle);
+    const dz = -Math.sin(angle);
+    const outlet = new THREE.Group();
+    outlet.position.set(x + dx * 0.43, y + 0.42, z + dz * 0.43);
+    outlet.rotation.y = angle;
+    root.add(outlet);
+    box(THREE, outlet, 0.1, 0, 0, 0.28, 0.24, 0.26, 0x777c78);
+  }
+  for (const offset of [-0.38, 0.38]) {
+    box(THREE, root, x + offset, y + 0.9, z, 0.08, 0.09, 0.9, 0x93978d);
+    box(THREE, root, x, y + 0.9, z + offset, 0.9, 0.09, 0.08, 0x93978d);
+  }
+}
+
+function addLayoutObserver(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, powered: boolean) {
+  const observer = new THREE.Group();
+  observer.position.set(x, y + 0.46, z);
+  orientDirectionalBlock(observer, facing);
+  root.add(observer);
+  box(THREE, observer, 0, 0, 0, 0.92, 0.92, 0.92, 0x858a84);
+  box(THREE, observer, 0.475, 0, 0, 0.035, 0.58, 0.58, 0xaaa99a);
+  box(THREE, observer, 0.5, 0.04, 0, 0.015, 0.2, 0.2, 0x292d2a, { outline: false });
+  box(THREE, observer, -0.475, 0, 0, 0.035, 0.25, 0.25,
+    powered ? 0xff4936 : 0x64241f, { emissive: powered ? 0xff2917 : 0, intensity: powered ? 1.1 : 0 });
+}
+
+function addLayoutStoredItem(THREE: Three, root: Group, x: number, y: number, z: number, inHopper: boolean) {
+  const itemX = x + (inHopper ? 0 : 0.25);
+  const itemZ = z + (inHopper ? 0 : 0.25);
+  const itemY = y + (inHopper ? 0.61 : 0.99);
+  box(THREE, root, itemX, itemY, itemZ, 0.18, 0.14, 0.18, 0xb58b4e);
+  box(THREE, root, itemX, itemY + 0.076, itemZ, 0.12, 0.012, 0.12, 0xd0a765, { outline: false });
 }
 
 function addLayoutLever(THREE: Three, root: Group, x: number, y: number, z: number, input: "A" | "B" | "C" | "SEL", label: string, powered: boolean, facing?: string, mount?: "wall") {
@@ -535,10 +598,8 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
     if (x === 1 && z === 2) return props.inputB;
   }
   if (circuitId === "XOR") {
-    if (layer !== 0) return false;
-    if (part.kind === "comparator" && x === 2 && z === 1) return props.inputA && !props.inputB;
-    if (part.kind === "comparator" && x === 2 && z === 4) return !props.inputA && props.inputB;
-    if (part.kind === "repeater" && x === 4 && z === 2) return props.output;
+    if (part.kind === "comparator") return props.output;
+    if (part.kind === "observer") return part.input === "A" ? props.inputA : part.input === "B" ? props.inputB : false;
   }
   if (circuitId === "XNOR") {
     const leftTerm = props.inputA && props.inputB;
@@ -570,7 +631,8 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   }
   const wireContactLength = (key: string, dx: number, dz: number) => {
     const contacts = partsByCell.get(key) ?? [];
-    if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp")) return 0.52;
+    if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp"
+      || part.kind === "dropper" || part.kind === "hopper" || part.kind === "observer")) return 0.52;
     if (contacts.some((part) => part.kind === "wall-torch" || part.kind === "torch")) {
       // Half a cell from the dust center ends at the adjacent torch block's boundary.
       return LOGIC_CELL / 2;
@@ -599,6 +661,12 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
     if (part.kind === "stone") addLayoutStone(THREE, root, x, y, z);
     if (part.kind === "piston") addLayoutPiston(THREE, root, x, y, z, part.facing, part.pistonType ?? "normal", Boolean(part.extended));
+    if (part.kind === "dropper") addLayoutDropper(THREE, root, x, y, z, part.facing);
+    if (part.kind === "hopper") addLayoutHopper(THREE, root, x, y, z, part.facing);
+    if (part.kind === "observer") {
+      const powered = logicComponentPowered(part, props, circuitId);
+      addLayoutObserver(THREE, root, x, y, z, part.facing, powered);
+    }
     if (part.kind === "lever") {
       const cell = `${part.layer}:${part.x}:${part.z}`;
       if (!stoneCells.has(cell) && !lampCells.has(cell)) addLayoutStone(THREE, root, x, y, z);
@@ -624,6 +692,14 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       if (circuitId !== "XOR" || (part.label !== "A" && part.label !== "B")) {
         addLabel(THREE, root, `${part.label ?? "OUT"} ${powered ? 1 : 0}`, x, y + 1.18, z, 0.9);
       }
+    }
+  }
+
+  if (circuitId === "XOR") {
+    const itemContainer = parts.find((part) => part.kind === (props.output ? "hopper" : "dropper"));
+    if (itemContainer) {
+      const { x, y, z } = layoutPosition(itemContainer, offsetX, offsetZ);
+      addLayoutStoredItem(THREE, root, x, y, z, props.output);
     }
   }
 
@@ -1176,6 +1252,7 @@ export default function RedstoneCircuit3D(props: Props) {
         {props.clock || (props.circuit && props.circuit.category !== "Logic")
           ? <span><i className="signal-dot" /> powered redstone dust</span>
           : <span><b>LAYOUT</b> full block-by-block circuit</span>}
+        {!props.clock && !props.circuit && gate === "XOR" && <span><b>ITEM</b> in {props.output ? "HOPPER" : "DROPPER"}</span>}
         {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : props.circuit ? <span><b>MODEL</b> {props.circuit.category}</span> : <>
           <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
           {gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}

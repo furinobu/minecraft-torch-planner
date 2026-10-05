@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import type { RedstoneClock, RedstoneGate } from "./RedstoneCircuit3D";
 import CircuitBehaviorDemo from "./CircuitBehaviorDemo";
 import { CIRCUIT_CATEGORIES, REDSTONE_CIRCUITS } from "./redstoneCircuits";
-import { COMPACT_XOR_LAYOUT } from "./redstoneXorLayout";
+import { DROPPER_HOPPER_XOR_LAYOUT } from "./redstoneXorLayout";
 import type { LogicLayoutPart } from "./redstoneLogicLayouts";
 import XorLayoutEditor from "./XorLayoutEditor";
 
@@ -37,16 +37,16 @@ const LEARNING_ITEMS = [
   { id: "cpu", title: "8-bit CPU", summary: "Trace a tiny program through the datapath." },
 ];
 
-const XOR_LAYOUT_STORAGE_KEY = "minecraft-torch-planner:xor-layout:v1";
+const XOR_LAYOUT_STORAGE_KEY = "minecraft-torch-planner:xor-layout:v2";
 
 function loadXorLayout() {
   const saved = window.localStorage.getItem(XOR_LAYOUT_STORAGE_KEY);
-  if (!saved) return COMPACT_XOR_LAYOUT;
+  if (!saved) return DROPPER_HOPPER_XOR_LAYOUT;
   try {
     const layout = JSON.parse(saved);
-    return Array.isArray(layout) ? layout as LogicLayoutPart[] : COMPACT_XOR_LAYOUT;
+    return Array.isArray(layout) ? layout as LogicLayoutPart[] : DROPPER_HOPPER_XOR_LAYOUT;
   } catch {
-    return COMPACT_XOR_LAYOUT;
+    return DROPPER_HOPPER_XOR_LAYOUT;
   }
 }
 
@@ -275,7 +275,7 @@ export default function RedstoneLearning() {
         </div>
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "This five-torch XOR has two inputs on the raised right platform. Its exclusive signal paths step down and join at the output lamp on the left. Flip A and B above to see the active path update."}</p></div>
+            <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : "Two observers pulse an upward-facing dropper. A single item moves between the dropper and the hopper above it; a comparator reads the hopper. The output is on when exactly one input has pulsed."}</p></div>
           <div className="redstone-build-preview">
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
@@ -305,7 +305,7 @@ export default function RedstoneLearning() {
           {layoutEditorOpen && <XorLayoutEditor
             layout={xorLayout}
             onChange={setXorLayout}
-            onReset={() => setXorLayout(COMPACT_XOR_LAYOUT)}
+            onReset={() => setXorLayout(DROPPER_HOPPER_XOR_LAYOUT)}
           />}
         </div>}
       </section>}
