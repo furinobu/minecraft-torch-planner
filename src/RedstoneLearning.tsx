@@ -41,7 +41,7 @@ type XorVariant = "dropper-hopper" | "piston";
 
 const XOR_LAYOUT_STORAGE_KEYS: Record<XorVariant, string> = {
   "dropper-hopper": "minecraft-torch-planner:xor-layout:v2",
-  piston: "minecraft-torch-planner:xor-piston-layout:v1",
+  piston: "minecraft-torch-planner:xor-piston-layout:v2",
 };
 
 function loadXorLayout(key: string, fallback: LogicLayoutPart[]) {
@@ -130,7 +130,7 @@ export default function RedstoneLearning() {
   const [memory, setMemory] = useState([0, 0, 0, 0]);
   const output = evaluate(gate, inputA, inputB);
   const activeXorLayout = xorVariant === "piston" ? pistonXorLayout : xorLayout;
-  const activeXorVariantLabel = xorVariant === "piston" ? "Piston XOR" : "Dropper-hopper latch";
+  const activeXorVariantLabel = xorVariant === "piston" ? "Classic 3-piston XOR" : "Dropper-hopper latch";
   const activeClock = CLOCKS.find((item) => item.id === activeCircuit) ?? null;
   const activeCircuitDefinition = REDSTONE_CIRCUITS.find((circuit) => circuit.id === activeCircuit);
   const clockOutput = Boolean(clockPhase && (activeClock?.id === "hopper-clock" || clockEnabled) && !(activeClock?.id === "stoppable-clock" && clockStopped));
@@ -289,11 +289,11 @@ export default function RedstoneLearning() {
 
         {gate === "XOR" && <div className="xor-variant-picker" role="group" aria-label="XOR circuit variant">
           <button type="button" className={xorVariant === "dropper-hopper" ? "selected" : ""} aria-pressed={xorVariant === "dropper-hopper"} onClick={() => setXorVariant("dropper-hopper")}>Dropper-hopper latch</button>
-          <button type="button" className={xorVariant === "piston" ? "selected" : ""} aria-pressed={xorVariant === "piston"} onClick={() => setXorVariant("piston")}>Piston XOR</button>
+          <button type="button" className={xorVariant === "piston" ? "selected" : ""} aria-pressed={xorVariant === "piston"} onClick={() => setXorVariant("piston")}>3-piston XOR · 3 × 5 × 2</button>
         </div>}
 
         <div className="redstone-build-card">
-          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : gate === "XOR" ? activeXorVariantLabel : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the shared output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : xorVariant === "piston" ? "The piston-and-repeater layout moves a marked block as its inputs change. Flip A and B to see the gate pieces and XOR output update." : "Two observers pulse an upward-facing dropper. A single item moves between the dropper and the hopper above it; a comparator reads the hopper. The output is on when exactly one input has pulsed."}</p></div>
+          <div><span className="redstone-kicker">BUILD IT IN YOUR WORLD</span><h3>{gate === "OR" ? "OR gate (isolated)" : gate === "XOR" ? activeXorVariantLabel : `${gate} gate`}</h3><p>{gate === "NOT" ? "Power a solid block with a lever. A redstone torch on the block turns off when the input turns on." : gate === "OR" ? "Repeaters isolate both lever inputs before they meet at the output." : gate === "AND" ? "Each input turns off its own torch. A central torch lights only when both input torches are off." : gate === "NAND" ? "Build an AND gate, then invert its output with a redstone torch." : gate === "NOR" ? "Build an OR gate, then invert its output with a redstone torch." : xorVariant === "piston" ? "Classic/Universal 3 × 5 × 2 layout: three sticky pistons, two levers, eight conductive blocks, and six redstone dust. The staggered center piston gates the raised output line." : "Two observers pulse an upward-facing dropper. A single item moves between the dropper and the hopper above it; a comparator reads the hopper. The output is on when exactly one input has pulsed."}</p></div>
           <div className="redstone-build-preview">
           <Suspense fallback={<div className="redstone-3d-loading">Loading 3D viewer…</div>}>
             <RedstoneCircuit3D
@@ -310,7 +310,7 @@ export default function RedstoneLearning() {
           </div>
           <div className="redstone-reference-links">
             {activeCircuitDefinition && activeCircuitDefinition.id !== "XOR" && <a href={activeCircuitDefinition.sourceUrl ?? `https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Java layout ↗" : activeCircuitDefinition.id === "OR" ? "Open the original OR layout ↗" : `Open the tested ${gate} layout ↗`}</a>}
-            {gate === "XOR" && xorVariant === "piston" && <a href="https://minecraft.wiki/w/Redstone_circuits/Piston/Piston_XOR" target="_blank" rel="noreferrer">Minecraft Wiki piston XOR reference ↗</a>}
+            {gate === "XOR" && xorVariant === "piston" && <a href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReS9wngSNC9UUI8yCBhDU2yQ3TWDtKt0eZB9-BunG0GTnbu_Hiy7BI9Ds&s=10" target="_blank" rel="noreferrer">Piston XOR reference image ↗</a>}
           </div>
         </div>
         {gate === "XOR" && <div className="redstone-layout-editor-section">

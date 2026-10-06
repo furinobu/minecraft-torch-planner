@@ -340,9 +340,9 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 }
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number, movable = false) {
-  const color = movable ? 0x55c6c4 : root.userData.circuitId === "XOR"
-    ? root.userData.xorVariant === "piston" ? 0x393d3a : y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9
-    : 0x777c77;
+  const pistonXor = root.userData.circuitId === "XOR" && root.userData.xorVariant === "piston";
+  const color = pistonXor ? movable ? 0x38383b : 0x232326 : movable ? 0x55c6c4
+    : root.userData.circuitId === "XOR" ? y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9 : 0x777c77;
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
 
@@ -548,6 +548,7 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
     if (part.signal === "B") return b;
     if (part.signal === "A_ONLY") return a && !b;
     if (part.signal === "B_ONLY") return !a && b;
+    if (part.signal === "SAME") return a === b;
     return part.signal === "OUTPUT" && output;
   }
   if (circuitId === "XNOR") {
@@ -630,6 +631,12 @@ function layoutInputOn(input: LogicLayoutPart["input"], props: Props) {
   return Boolean(props.select);
 }
 
+function layoutPartPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
+  if (part.input) return layoutInputOn(part.input, props);
+  if (part.signal) return logicDustPowered(part, props, circuitId);
+  return Boolean(part.extended);
+}
+
 function layoutOffset(facing = "east") {
   if (facing === "north") return { x: 0, layer: 0, z: -1 };
   if (facing === "south") return { x: 0, layer: 0, z: 1 };
@@ -650,12 +657,32 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const offsetZ = maxZ / 2 - (maxZ % 2 === 0 ? 0.5 : 0);
   const stoneCells = new Set(parts.filter((part) => part.kind === "stone").map((part) => `${part.layer}:${part.x}:${part.z}`));
   const lampCells = new Set(parts.filter((part) => part.kind === "lamp").map((part) => `${part.layer}:${part.x}:${part.z}`));
-  const dustByCell = new Map(parts.filter((part) => part.kind === "dust").map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
   const partsByCell = new Map<string, LogicLayoutPart[]>();
   for (const part of parts) {
     const key = `${part.layer}:${part.x}:${part.z}`;
     partsByCell.set(key, [...(partsByCell.get(key) ?? []), part]);
   }
+  const movedStoneParts = circuitId === "XOR"
+    ? parts.filter((part) => part.kind === "stone" && part.movable && layoutPartPowered(part, props, circuitId))
+    : [];
+  const movedStoneOrigins = new Set(movedStoneParts.map((part) => `${part.layer}:${part.x}:${part.z}`));
+  const movedStoneDestinations = new Set(movedStoneParts.map((part) => {
+    const offset = layoutOffset(part.facing);
+    return `${part.layer + offset.layer}:${part.x + offset.x}:${part.z + offset.z}`;
+  }));
+  const pistonVariant = circuitId === "XOR" && props.xorVariant === "piston";
+  const visibleDust = parts.filter((part) => {
+    if (part.kind !== "dust" || !pistonVariant) return part.kind === "dust";
+    if (movedStoneDestinations.has(`${part.layer}:${part.x}:${part.z}`)) return false;
+    if (part.layer > 0) {
+      const supportKey = `${part.layer - 1}:${part.x}:${part.z}`;
+      const supportParts = partsByCell.get(supportKey) ?? [];
+      const hasStaticSupport = supportParts.some((support) => support.kind === "stone" || support.kind === "piston");
+      if ((!hasStaticSupport || movedStoneOrigins.has(supportKey)) && !movedStoneDestinations.has(supportKey)) return false;
+    }
+    return true;
+  });
+  const dustByCell = new Map(visibleDust.map((part) => [`${part.layer}:${part.x}:${part.z}`, part]));
   const wireContactLength = (key: string, dx: number, dz: number) => {
     const contacts = partsByCell.get(key) ?? [];
     if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp" || part.kind === "piston"
@@ -685,7 +712,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const lampStates = new Map(lamps.map((part, index) => [`${part.layer}:${part.x}:${part.z}`, outputValues[index] ?? false]));
 
   for (const part of parts) {
-    const partPosition = part.kind === "stone" && part.movable && layoutInputOn(part.input, props)
+    const partPosition = part.kind === "stone" && part.movable && layoutPartPowered(part, props, circuitId)
       ? { ...part, x: part.x + layoutOffset(part.facing).x, layer: part.layer + layoutOffset(part.facing).layer, z: part.z + layoutOffset(part.facing).z }
       : part;
     const { x, y, z } = layoutPosition(partPosition, offsetX, offsetZ);
@@ -698,7 +725,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
       const hasMovableBlock = parts.some((candidate) => candidate.kind === "stone" && candidate.movable
         && candidate.layer === part.layer + offset.layer && candidate.x === part.x + offset.x && candidate.z === part.z + offset.z);
       addLayoutPiston(THREE, root, x, y, z, part.facing, part.pistonType ?? "normal",
-        part.input ? layoutInputOn(part.input, props) : Boolean(part.extended), !hasMovableBlock);
+        (part.input || part.signal) ? layoutPartPowered(part, props, circuitId) : Boolean(part.extended), !hasMovableBlock);
     }
     if (part.kind === "dropper") addLayoutDropper(THREE, root, x, y, z, part.facing);
     if (part.kind === "hopper") addLayoutHopper(THREE, root, x, y, z, part.facing);
