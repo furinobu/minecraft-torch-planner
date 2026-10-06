@@ -10,6 +10,7 @@ export type LogicLayoutPart = {
   comparatorMode?: "compare" | "subtract";
   pistonType?: "normal" | "sticky";
   extended?: boolean;
+  movable?: boolean;
   mount?: "wall";
   powered?: boolean;
   input?: "A" | "B" | "C" | "SEL";

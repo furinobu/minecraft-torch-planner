@@ -68,6 +68,8 @@ type Props = {
   gate?: RedstoneGate;
   circuit?: CircuitDefinition;
   layout?: LogicLayoutPart[];
+  xorVariant?: "dropper-hopper" | "piston";
+  variantLabel?: string;
   inputA: boolean;
   inputB: boolean;
   inputC?: boolean;
@@ -337,27 +339,33 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
   };
 }
 
-function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number) {
-  const color = root.userData.circuitId === "XOR"
-    ? y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9
+function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number, movable = false) {
+  const color = movable ? 0x55c6c4 : root.userData.circuitId === "XOR"
+    ? root.userData.xorVariant === "piston" ? 0x393d3a : y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9
     : 0x777c77;
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
 
-function addLayoutPiston(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, pistonType: "normal" | "sticky", extended: boolean) {
+function addLayoutPiston(THREE: Three, root: Group, x: number, y: number, z: number, facing: string | undefined, pistonType: "normal" | "sticky", extended: boolean, drawPushedBlock = true) {
   const piston = new THREE.Group();
   piston.position.set(x, y + 0.46, z);
-  piston.rotation.y = logicFacingAngle(facing);
+  const direction = layoutOffset(facing);
+  piston.quaternion.setFromUnitVectors(
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(direction.x, direction.layer, direction.z),
+  );
   root.add(piston);
 
-  box(THREE, piston, 0, 0, 0, 0.92, 0.92, 0.92, 0x958b70);
-  box(THREE, piston, -0.24, 0, 0.465, 0.38, 0.68, 0.035, 0x716a56);
-  box(THREE, piston, 0.24, 0, 0.465, 0.38, 0.68, 0.035, 0x716a56);
+  const pistonColor = root.userData.xorVariant === "piston" ? 0x777d7a : 0x958b70;
+  const pistonTrim = root.userData.xorVariant === "piston" ? 0x565b59 : 0x716a56;
+  box(THREE, piston, 0, 0, 0, 0.92, 0.92, 0.92, pistonColor);
+  box(THREE, piston, -0.24, 0, 0.465, 0.38, 0.68, 0.035, pistonTrim);
+  box(THREE, piston, 0.24, 0, 0.465, 0.38, 0.68, 0.035, pistonTrim);
 
   const faceColor = pistonType === "sticky" ? 0x82a34f : 0xa6a18e;
   if (extended) {
     box(THREE, piston, 0.72, 0, 0, 0.58, 0.22, 0.22, 0xaaa58f);
-    box(THREE, piston, 1, 0, 0, 0.92, 0.82, 0.82, 0x958b70);
+    if (drawPushedBlock) box(THREE, piston, 1, 0, 0, 0.92, 0.82, 0.82, pistonColor);
     box(THREE, piston, 1.47, 0, 0, 0.035, 0.68, 0.68, faceColor);
   } else {
     box(THREE, piston, 0.47, 0, 0, 0.035, 0.72, 0.72, faceColor);
@@ -598,6 +606,8 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
     if (x === 1 && z === 2) return props.inputB;
   }
   if (circuitId === "XOR") {
+    if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
+    if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
     if (part.kind === "comparator") return props.output;
     if (part.kind === "observer") return part.input === "A" ? props.inputA : part.input === "B" ? props.inputB : false;
   }
@@ -613,10 +623,27 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
   return false;
 }
 
+function layoutInputOn(input: LogicLayoutPart["input"], props: Props) {
+  if (input === "A") return props.inputA;
+  if (input === "B") return props.inputB;
+  if (input === "C") return Boolean(props.inputC);
+  return Boolean(props.select);
+}
+
+function layoutOffset(facing = "east") {
+  if (facing === "north") return { x: 0, layer: 0, z: -1 };
+  if (facing === "south") return { x: 0, layer: 0, z: 1 };
+  if (facing === "west") return { x: -1, layer: 0, z: 0 };
+  if (facing === "up") return { x: 0, layer: 1, z: 0 };
+  if (facing === "down") return { x: 0, layer: -1, z: 0 };
+  return { x: 1, layer: 0, z: 0 };
+}
+
 function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: string) {
   const parts = props.layout ?? REDSTONE_LOGIC_LAYOUTS[circuitId];
   if (!parts) return false;
   root.userData.circuitId = circuitId;
+  root.userData.xorVariant = props.xorVariant ?? "dropper-hopper";
   const maxX = Math.max(...parts.map((part) => part.x));
   const maxZ = Math.max(...parts.map((part) => part.z));
   const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
@@ -631,7 +658,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   }
   const wireContactLength = (key: string, dx: number, dz: number) => {
     const contacts = partsByCell.get(key) ?? [];
-    if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp"
+    if (contacts.some((part) => part.kind === "stone" || part.kind === "lever" || part.kind === "lamp" || part.kind === "piston"
       || part.kind === "dropper" || part.kind === "hopper" || part.kind === "observer")) return 0.52;
     if (contacts.some((part) => part.kind === "wall-torch" || part.kind === "torch")) {
       // Half a cell from the dust center ends at the adjacent torch block's boundary.
@@ -658,9 +685,21 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const lampStates = new Map(lamps.map((part, index) => [`${part.layer}:${part.x}:${part.z}`, outputValues[index] ?? false]));
 
   for (const part of parts) {
-    const { x, y, z } = layoutPosition(part, offsetX, offsetZ);
-    if (part.kind === "stone") addLayoutStone(THREE, root, x, y, z);
-    if (part.kind === "piston") addLayoutPiston(THREE, root, x, y, z, part.facing, part.pistonType ?? "normal", Boolean(part.extended));
+    const partPosition = part.kind === "stone" && part.movable && layoutInputOn(part.input, props)
+      ? { ...part, x: part.x + layoutOffset(part.facing).x, layer: part.layer + layoutOffset(part.facing).layer, z: part.z + layoutOffset(part.facing).z }
+      : part;
+    const { x, y, z } = layoutPosition(partPosition, offsetX, offsetZ);
+    if (part.kind === "stone") {
+      addLayoutStone(THREE, root, x, y, z, Boolean(part.movable));
+      if (part.label && part.movable) addLabel(THREE, root, part.label, x, y + 1.08, z, 0.82);
+    }
+    if (part.kind === "piston") {
+      const offset = layoutOffset(part.facing);
+      const hasMovableBlock = parts.some((candidate) => candidate.kind === "stone" && candidate.movable
+        && candidate.layer === part.layer + offset.layer && candidate.x === part.x + offset.x && candidate.z === part.z + offset.z);
+      addLayoutPiston(THREE, root, x, y, z, part.facing, part.pistonType ?? "normal",
+        part.input ? layoutInputOn(part.input, props) : Boolean(part.extended), !hasMovableBlock);
+    }
     if (part.kind === "dropper") addLayoutDropper(THREE, root, x, y, z, part.facing);
     if (part.kind === "hopper") addLayoutHopper(THREE, root, x, y, z, part.facing);
     if (part.kind === "observer") {
@@ -1224,7 +1263,7 @@ export default function RedstoneCircuit3D(props: Props) {
   }, [ready, props.gate, props.circuit?.id, props.inputA, props.inputB, props.inputC, props.select, props.output, props.secondaryOutput, props.value, props.stored, props.itemCount, props.sentCount, props.locked, props.extended, props.pulse, props.layout, props.clock, props.clockPhase, props.clockEnabled, props.clockStopped]);
 
   const fallback = props.gate ? FALLBACKS[props.gate] : undefined;
-  const circuitName = props.circuit?.title ?? (props.clock ? ({
+  const circuitName = props.variantLabel ?? props.circuit?.title ?? (props.clock ? ({
     "repeater-clock": "Repeater clock",
     "torch-clock": "Torch clock",
     "comparator-clock": "Comparator clock",
@@ -1252,7 +1291,7 @@ export default function RedstoneCircuit3D(props: Props) {
         {props.clock || (props.circuit && props.circuit.category !== "Logic")
           ? <span><i className="signal-dot" /> powered redstone dust</span>
           : <span><b>LAYOUT</b> full block-by-block circuit</span>}
-        {!props.clock && !props.circuit && gate === "XOR" && <span><b>ITEM</b> in {props.output ? "HOPPER" : "DROPPER"}</span>}
+        {!props.clock && !props.circuit && gate === "XOR" && props.layout?.some((part) => part.kind === "hopper" || part.kind === "dropper") && <span><b>ITEM</b> in {props.output ? "HOPPER" : "DROPPER"}</span>}
         {props.clock ? <span><b>PHASE</b> {props.clockPhase ? "HIGH" : "LOW"}</span> : props.circuit ? <span><b>MODEL</b> {props.circuit.category}</span> : <>
           <span><b>A</b> {props.inputA ? "1 · ON" : "0 · OFF"}</span>
           {gate !== "NOT" && <span><b>B</b> {props.inputB ? "1 · ON" : "0 · OFF"}</span>}
