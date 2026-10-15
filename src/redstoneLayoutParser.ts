@@ -65,8 +65,8 @@ function parsePart(value: unknown, path: string): LogicLayoutPart {
 }
 
 function parseLayout(value: unknown, name: string): LogicLayoutPart[] {
-  if (!Array.isArray(value) || value.length === 0) throw new Error(`XOR layout "${name}" must be a non-empty array`);
-  return value.map((part, index) => parsePart(part, `XOR layout "${name}"[${index}]`));
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`Circuit layout "${name}" must be a non-empty array`);
+  return value.map((part, index) => parsePart(part, `Circuit layout "${name}"[${index}]`));
 }
 
 export function parseLogicLayoutJson(source: string, name: string): LogicLayoutPart[] {

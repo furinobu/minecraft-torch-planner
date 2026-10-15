@@ -576,6 +576,7 @@ function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: strin
     if (part.signal === "B") return !props.inputB;
     if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
     if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
+    if (part.signal === "SAME") return props.inputA === props.inputB;
     if (part.signal === "OUTPUT") return props.output;
   }
   if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {

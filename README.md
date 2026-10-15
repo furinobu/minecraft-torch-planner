@@ -39,15 +39,15 @@ The farm range demo uses same-height horizontal positions to visualize the 24–
 
 The redstone lesson is for Java Edition. Clock periods and tested layouts link to the [Redstonery circuit library](https://redstonery.com/circuits/). The lesson also teaches the design of a starter 4 × 8 RAM and an accumulator-style 8-bit CPU.
 
-### XOR layout JSON
+### Circuit layout JSON
 
-The two editable XOR builds are described in `src/redstoneXorLayouts/dropper-hopper.json` and `src/redstoneXorLayouts/piston.json`. Each array entry places one block. `x` and `z` are floor-grid coordinates; `layer` is its height, with `0` on the floor. `kind` selects the block, while fields such as `facing`, `input`, `signal`, `pistonType`, and `movable` describe its orientation or behavior. For example:
+Each logic gate and combinational circuit has its own layout in `src/redstoneLayouts/`, such as `not.json`, `or.json`, and `full-adder.json`. Each array entry places one block. `x` and `z` are floor-grid coordinates; `layer` is its height, with `0` on the floor. `kind` selects the block, while fields such as `facing`, `input`, `signal`, `pistonType`, and `movable` describe its orientation or behavior. For example:
 
 ```json
 { "layer": 0, "kind": "dust", "x": 1, "z": 0, "signal": "A" }
 ```
 
-`signal` can be `A`, `B`, `A_ONLY`, `B_ONLY`, `SAME`, or `OUTPUT`; it controls which active path lights that part. The parser validates each JSON file when the app loads and reports the layout entry for invalid fields or values. The layout editor's **Download JSON** output uses the same array format.
+`signal` can be `A`, `B`, `A_ONLY`, `B_ONLY`, `SAME`, or `OUTPUT`; it controls which active path lights that part. The parser validates each JSON file when the app loads and reports the layout entry for invalid fields or values. XOR's dropper-hopper and piston variants remain in `src/redstoneXorLayouts/` and use the same format. The layout editor's **Download JSON** output also uses this array format.
 
 If this browser has a saved editor layout, choose **Reset reference** to load the updated JSON layout.
 

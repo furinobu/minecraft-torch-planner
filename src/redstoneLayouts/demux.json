@@ -1,0 +1,656 @@
+[
+  {
+    "layer": 0,
+    "kind": "lever",
+    "x": 0,
+    "z": 0,
+    "facing": "north",
+    "powered": false,
+    "input": "A"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 1,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 5,
+    "z": 0,
+    "facing": "west"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 6,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 7,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 9,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 11,
+    "z": 0,
+    "facing": "west"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 12,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 2,
+    "z": 1,
+    "facing": "north"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 2
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 3
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 4
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 5
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 6
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 7
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 2,
+    "z": 8
+  },
+  {
+    "layer": 0,
+    "kind": "wall-torch",
+    "x": 2,
+    "z": 9,
+    "facing": "south"
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 4,
+    "z": 4
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 5
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 6
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 7
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 8
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 4,
+    "z": 9,
+    "facing": "north"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 11
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 3,
+    "z": 12
+  },
+  {
+    "layer": 0,
+    "kind": "wall-torch",
+    "x": 3,
+    "z": 13,
+    "facing": "south"
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 3,
+    "z": 14,
+    "facing": "north"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 15
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 16
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 4,
+    "z": 16
+  },
+  {
+    "layer": 0,
+    "kind": "lamp",
+    "x": 5,
+    "z": 16,
+    "label": "Y0"
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 8,
+    "z": 1,
+    "facing": "north"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 2
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 3
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 4
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 5
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 6
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 7
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 8,
+    "z": 8
+  },
+  {
+    "layer": 0,
+    "kind": "wall-torch",
+    "x": 8,
+    "z": 9,
+    "facing": "south"
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 10,
+    "z": 4
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 5
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 6
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 7
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 10,
+    "z": 8
+  },
+  {
+    "layer": 0,
+    "kind": "wall-torch",
+    "x": 10,
+    "z": 9,
+    "facing": "south"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 8,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 9,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 10
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 9,
+    "z": 11
+  },
+  {
+    "layer": 0,
+    "kind": "stone",
+    "x": 9,
+    "z": 12
+  },
+  {
+    "layer": 0,
+    "kind": "wall-torch",
+    "x": 9,
+    "z": 13,
+    "facing": "south"
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 9,
+    "z": 14,
+    "facing": "north"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 9,
+    "z": 15
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 9,
+    "z": 16
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 10,
+    "z": 16
+  },
+  {
+    "layer": 0,
+    "kind": "lamp",
+    "x": 11,
+    "z": 16,
+    "label": "Y1"
+  },
+  {
+    "layer": 1,
+    "kind": "stone",
+    "x": 4,
+    "z": 3
+  },
+  {
+    "layer": 1,
+    "kind": "dust",
+    "x": 4,
+    "z": 4
+  },
+  {
+    "layer": 1,
+    "kind": "stone",
+    "x": 10,
+    "z": 3
+  },
+  {
+    "layer": 1,
+    "kind": "dust",
+    "x": 10,
+    "z": 4
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 0,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 1,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 2,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 3,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 4,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 5,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 6,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 7,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 8,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 9,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 10,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 11,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 12,
+    "z": 0
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 4,
+    "z": 1
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 4,
+    "z": 2
+  },
+  {
+    "layer": 2,
+    "kind": "dust",
+    "x": 4,
+    "z": 3
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 10,
+    "z": 1
+  },
+  {
+    "layer": 2,
+    "kind": "stone",
+    "x": 10,
+    "z": 2
+  },
+  {
+    "layer": 2,
+    "kind": "dust",
+    "x": 10,
+    "z": 3
+  },
+  {
+    "layer": 3,
+    "kind": "lever",
+    "x": 0,
+    "z": 0,
+    "facing": "north",
+    "powered": false,
+    "input": "SEL"
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 1,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 2,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 3,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 4,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "repeater",
+    "x": 5,
+    "z": 0,
+    "facing": "west"
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 6,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 7,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 8,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 9,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 10,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "repeater",
+    "x": 11,
+    "z": 0,
+    "facing": "west"
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 12,
+    "z": 0
+  },
+  {
+    "layer": 3,
+    "kind": "repeater",
+    "x": 4,
+    "z": 1,
+    "facing": "north"
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 4,
+    "z": 2
+  },
+  {
+    "layer": 3,
+    "kind": "repeater",
+    "x": 10,
+    "z": 1,
+    "facing": "north"
+  },
+  {
+    "layer": 3,
+    "kind": "dust",
+    "x": 10,
+    "z": 2
+  }
+]

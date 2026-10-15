@@ -1,0 +1,65 @@
+[
+  {
+    "layer": 0,
+    "kind": "lever",
+    "x": 0,
+    "z": 0,
+    "facing": "north",
+    "powered": false,
+    "input": "A"
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 1,
+    "z": 0,
+    "facing": "east"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 0
+  },
+  {
+    "layer": 0,
+    "kind": "lever",
+    "x": 0,
+    "z": 2,
+    "facing": "north",
+    "powered": false,
+    "input": "B"
+  },
+  {
+    "layer": 0,
+    "kind": "repeater",
+    "x": 1,
+    "z": 2,
+    "facing": "east"
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 2
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 2,
+    "z": 1
+  },
+  {
+    "layer": 0,
+    "kind": "dust",
+    "x": 3,
+    "z": 1
+  },
+  {
+    "layer": 0,
+    "kind": "lamp",
+    "x": 4,
+    "z": 1,
+    "label": "OUT"
+  }
+]
