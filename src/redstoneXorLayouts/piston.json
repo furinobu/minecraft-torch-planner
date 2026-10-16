@@ -69,7 +69,7 @@
     "x": 2,
     "z": 1,
     "facing": "north",
-    "signal": "SAME",
+    "signal": "B",
     "movable": true
   },
   {
@@ -79,7 +79,7 @@
     "z": 2,
     "facing": "north",
     "pistonType": "sticky",
-    "signal": "SAME"
+    "signal": "B"
   },
   {
     "layer": 0,
