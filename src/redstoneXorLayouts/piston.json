@@ -18,7 +18,7 @@
     "kind": "lever",
     "x": 0,
     "z": 3,
-    "facing": "north",
+    "facing": "west",
     "mount": "wall",
     "powered": false,
     "input": "A"
@@ -28,7 +28,7 @@
     "kind": "lever",
     "x": 2,
     "z": 4,
-    "facing": "north",
+    "facing": "south",
     "mount": "wall",
     "powered": false,
     "input": "B"
