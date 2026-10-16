@@ -9,7 +9,7 @@
     "layer": 0,
     "kind": "wall-torch",
     "x": 0,
-    "z": 1,
+    "z": 0,
     "facing": "north",
     "signal": "SAME"
   },
@@ -28,7 +28,7 @@
     "kind": "lever",
     "x": 2,
     "z": 4,
-    "facing": "south",
+    "facing": "west",
     "mount": "wall",
     "powered": false,
     "input": "B"
