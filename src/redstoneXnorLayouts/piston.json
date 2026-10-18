@@ -1,0 +1,23 @@
+[
+  { "layer": 0, "kind": "stone", "x": 2, "z": 0 },
+  { "layer": 1, "kind": "lamp", "x": 2, "z": 0, "label": "OUT" },
+  { "layer": 0, "kind": "stone", "x": 1, "z": 1 },
+  { "layer": 0, "kind": "stone", "x": 2, "z": 1 },
+  { "layer": 1, "kind": "dust", "x": 1, "z": 1, "signal": "OUTPUT" },
+  { "layer": 1, "kind": "dust", "x": 2, "z": 1, "signal": "OUTPUT" },
+  { "layer": 0, "kind": "piston", "x": 0, "z": 2, "facing": "east", "pistonType": "sticky", "signal": "B" },
+  { "layer": 0, "kind": "stone", "x": 1, "z": 2, "movable": true, "facing": "east", "signal": "B" },
+  { "layer": 0, "kind": "stone", "x": 0, "z": 3 },
+  { "layer": 0, "kind": "stone", "x": 1, "z": 3 },
+  { "layer": 0, "kind": "stone", "x": 2, "z": 3 },
+  { "layer": 1, "kind": "repeater", "x": 0, "z": 3, "facing": "north", "signal": "A" },
+  { "layer": 1, "kind": "repeater", "x": 1, "z": 3, "facing": "north", "signal": "TORCH" },
+  { "layer": 1, "kind": "repeater", "x": 2, "z": 3, "facing": "north", "signal": "B" },
+  { "layer": 0, "kind": "stone", "x": 0, "z": 4 },
+  { "layer": 0, "kind": "wall-torch", "x": 1, "z": 4, "facing": "east", "signal": "A" },
+  { "layer": 0, "kind": "stone", "x": 2, "z": 4 },
+  { "layer": 0, "kind": "dust", "x": 0, "z": 5, "signal": "A" },
+  { "layer": 0, "kind": "dust", "x": 2, "z": 5, "signal": "B" },
+  { "layer": 0, "kind": "lever", "x": 0, "z": 6, "facing": "west", "mount": "wall", "powered": false, "input": "A" },
+  { "layer": 0, "kind": "lever", "x": 2, "z": 6, "facing": "west", "mount": "wall", "powered": false, "input": "B" }
+]

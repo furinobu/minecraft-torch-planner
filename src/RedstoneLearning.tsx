@@ -38,6 +38,7 @@ const LEARNING_ITEMS = [
 ];
 
 type XorVariant = "dropper-hopper" | "piston";
+type XnorVariant = "full" | "piston";
 
 const XOR_LAYOUT_STORAGE_KEYS: Record<XorVariant, string> = {
   "dropper-hopper": "minecraft-torch-planner:xor-layout:v2",
@@ -82,6 +83,7 @@ function selectionHref(id: string) {
   const url = new URL(window.location.href);
   url.searchParams.delete("gate");
   url.searchParams.delete("circuit");
+  url.searchParams.delete("variant");
   url.searchParams.set(GATES.includes(id as RedstoneGate) ? "gate" : "circuit", id);
   url.hash = "";
   return `${url.pathname}${url.search}`;
@@ -112,6 +114,7 @@ export default function RedstoneLearning() {
     return GATES.includes(selection as RedstoneGate) ? selection as RedstoneGate : "AND";
   });
   const [xorVariant, setXorVariant] = useState<XorVariant>("dropper-hopper");
+  const [xnorVariant, setXnorVariant] = useState<XnorVariant>(() => new URLSearchParams(window.location.search).get("variant") === "xnor-piston" ? "piston" : "full");
   const [xorLayout, setXorLayout] = useState<LogicLayoutPart[]>(() => loadXorLayout(XOR_LAYOUT_STORAGE_KEYS["dropper-hopper"], DROPPER_HOPPER_XOR_LAYOUT));
   const [pistonXorLayout, setPistonXorLayout] = useState<LogicLayoutPart[]>(() => loadXorLayout(XOR_LAYOUT_STORAGE_KEYS.piston, PISTON_XOR_LAYOUT));
   const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
@@ -156,6 +159,7 @@ export default function RedstoneLearning() {
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentUrl !== nextUrl) window.history.pushState({ redstoneSelection: id }, "", nextUrl);
     setActiveCircuit(id);
+    setXnorVariant("full");
     if (GATES.includes(id as RedstoneGate)) setGate(id as RedstoneGate);
     if (CLOCKS.some((item) => item.id === id)) {
       setClockPhase(false);
@@ -164,6 +168,16 @@ export default function RedstoneLearning() {
       setClockStopped(false);
     }
     window.setTimeout(() => scrollToSelection(id), 0);
+  };
+
+  const selectXnorVariant = (variant: XnorVariant) => {
+    setXnorVariant(variant);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("variant");
+    if (variant === "piston") url.searchParams.set("variant", "xnor-piston");
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentUrl !== nextUrl) window.history.pushState({ redstoneSelection: "XNOR", redstoneVariant: variant }, "", nextUrl);
   };
 
   useEffect(() => {
@@ -176,6 +190,7 @@ export default function RedstoneLearning() {
     const onPopState = () => {
       const selection = selectionFromUrl();
       setActiveCircuit(selection);
+      setXnorVariant(selection === "XNOR" && new URLSearchParams(window.location.search).get("variant") === "xnor-piston" ? "piston" : "full");
       if (GATES.includes(selection as RedstoneGate)) setGate(selection as RedstoneGate);
       if (CLOCKS.some((item) => item.id === selection)) {
         setClockPhase(false);
@@ -372,9 +387,20 @@ export default function RedstoneLearning() {
       {activeCircuitDefinition && !DEDICATED_DEMOS.has(activeCircuit) && <section className="redstone-section panel circuit-detail-section" data-circuit-id={activeCircuit}>
         <div className="redstone-section-title"><span className="redstone-step circuit-category-step">{activeCircuitDefinition.category.toUpperCase()}</span><div><span className="redstone-kicker">CIRCUIT EXPLORER · JAVA</span><h2>{activeCircuitDefinition.title}</h2></div></div>
         <p className="redstone-copy">{activeCircuitDefinition.summary} The 3D view expands the full Java block layout; toggle its inputs to see the logical outputs.</p>
-        <div className="clock-specs circuit-specs">{activeCircuitDefinition.width !== undefined && activeCircuitDefinition.depth !== undefined && <span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span>}{activeCircuitDefinition.layers !== undefined && <span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>}{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</div>
-        <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} />
-        <div className="redstone-reference-links"><a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Minecraft layout ↗" : "Open the tested Minecraft layout ↗"}</a><a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a></div>
+        {activeCircuitDefinition.id === "XNOR" && <div className="circuit-variant-picker" role="group" aria-label="XNOR circuit variant">
+          <button type="button" className={xnorVariant === "full" ? "selected" : ""} aria-pressed={xnorVariant === "full"} onClick={() => selectXnorVariant("full")}>Full XNOR layout</button>
+          <button type="button" className={xnorVariant === "piston" ? "selected" : ""} aria-pressed={xnorVariant === "piston"} onClick={() => selectXnorVariant("piston")}>Compact piston XNOR (I) · 3 × 5 × 2</button>
+        </div>}
+        <div className="clock-specs circuit-specs">
+          {activeCircuitDefinition.id === "XNOR" && xnorVariant === "piston" ? <><span>3 × 5 × 2 blocks</span><span>1 torch</span><span>3 repeaters</span><span>Sticky piston</span></>
+            : <>{activeCircuitDefinition.width !== undefined && activeCircuitDefinition.depth !== undefined && <span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span>}{activeCircuitDefinition.layers !== undefined && <span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>}{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</>}
+        </div>
+        <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} xnorVariant={activeCircuitDefinition.id === "XNOR" ? xnorVariant : undefined} />
+        <div className="redstone-reference-links">
+          <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Minecraft layout ↗" : "Open the tested Minecraft layout ↗"}</a>
+          {activeCircuitDefinition.id === "XNOR" && xnorVariant === "piston" && <a href="https://minecraft.fandom.com/wiki/Redstone_circuits/Logic/XNOR" target="_blank" rel="noreferrer">Minecraft Wiki · Compact piston XNOR gate (I) ↗</a>}
+          <a href="https://redstonery.com/circuits/" target="_blank" rel="noreferrer">Browse the original Redstonery catalog ↗</a>
+        </div>
       </section>}
 
       <section className="redstone-section panel" id="memory">

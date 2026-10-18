@@ -69,6 +69,7 @@ type Props = {
   circuit?: CircuitDefinition;
   layout?: LogicLayoutPart[];
   xorVariant?: "dropper-hopper" | "piston";
+  xnorVariant?: "full" | "piston";
   variantLabel?: string;
   inputA: boolean;
   inputB: boolean;
@@ -340,8 +341,8 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 }
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number, movable = false) {
-  const pistonXor = root.userData.circuitId === "XOR" && root.userData.xorVariant === "piston";
-  const color = pistonXor ? movable ? 0x38383b : 0x232326 : movable ? 0x55c6c4
+  const pistonLayout = root.userData.pistonLayout === true;
+  const color = pistonLayout ? movable ? 0x38383b : 0x232326 : movable ? 0x55c6c4
     : root.userData.circuitId === "XOR" ? y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9 : 0x777c77;
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
@@ -356,8 +357,8 @@ function addLayoutPiston(THREE: Three, root: Group, x: number, y: number, z: num
   );
   root.add(piston);
 
-  const pistonColor = root.userData.xorVariant === "piston" ? 0x777d7a : 0x958b70;
-  const pistonTrim = root.userData.xorVariant === "piston" ? 0x565b59 : 0x716a56;
+  const pistonColor = root.userData.pistonLayout === true ? 0x777d7a : 0x958b70;
+  const pistonTrim = root.userData.pistonLayout === true ? 0x565b59 : 0x716a56;
   box(THREE, piston, 0, 0, 0, 0.92, 0.92, 0.92, pistonColor);
   box(THREE, piston, -0.24, 0, 0.465, 0.38, 0.68, 0.035, pistonTrim);
   box(THREE, piston, 0.24, 0, 0.465, 0.38, 0.68, 0.035, pistonTrim);
@@ -510,6 +511,23 @@ function logicOutputValues(id: string, props: Props, lampCount: number) {
   return [props.output];
 }
 
+function logicSignalPowered(signal: LogicLayoutPart["signal"], props: Props) {
+  if (signal === "A") return props.inputA;
+  if (signal === "B") return props.inputB;
+  if (signal === "A_ONLY") return props.inputA && !props.inputB;
+  if (signal === "B_ONLY") return !props.inputA && props.inputB;
+  if (signal === "SAME") return props.inputA === props.inputB;
+  if (signal === "OUTPUT") return props.output;
+  if (signal === "TORCH") return !props.inputA;
+  return false;
+}
+
+function logicTorchSignalPowered(signal: LogicLayoutPart["signal"], props: Props) {
+  if (signal === "A") return !props.inputA;
+  if (signal === "B") return !props.inputB;
+  return logicSignalPowered(signal, props);
+}
+
 function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string) {
   const { x, z, layer } = part;
   const a = props.inputA;
@@ -544,12 +562,10 @@ function logicDustPowered(part: LogicLayoutPart, props: Props, circuitId: string
   }
 
   if (circuitId === "XOR") {
-    if (part.signal === "A") return a;
-    if (part.signal === "B") return b;
-    if (part.signal === "A_ONLY") return a && !b;
-    if (part.signal === "B_ONLY") return !a && b;
-    if (part.signal === "SAME") return a === b;
-    return part.signal === "OUTPUT" && output;
+    return logicSignalPowered(part.signal, props);
+  }
+  if (circuitId === "XNOR" && props.xnorVariant === "piston") {
+    return logicSignalPowered(part.signal, props);
   }
   if (circuitId === "XNOR") {
     const leftTerm = a && b;
@@ -572,12 +588,10 @@ function logicTorchPowered(part: LogicLayoutPart, props: Props, circuitId: strin
   const { x, z, layer } = part;
   if (circuitId === "implication") return layer === 0 && x === 1 && z === 0 && !props.inputA;
   if (circuitId === "XOR") {
-    if (part.signal === "A") return !props.inputA;
-    if (part.signal === "B") return !props.inputB;
-    if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
-    if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
-    if (part.signal === "SAME") return props.inputA === props.inputB;
-    if (part.signal === "OUTPUT") return props.output;
+    return logicTorchSignalPowered(part.signal, props);
+  }
+  if (circuitId === "XNOR" && props.xnorVariant === "piston") {
+    return logicTorchSignalPowered(part.signal, props);
   }
   if (circuitId === "NOT" || circuitId === "NOR" || circuitId === "AND") {
     if (part.kind === "wall-torch") return props.output;
@@ -608,13 +622,12 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
     if (x === 1 && z === 2) return props.inputB;
   }
   if (circuitId === "XOR") {
-    if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
-    if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
-    if (part.kind === "repeater" && part.signal === "A") return props.inputA;
-    if (part.kind === "repeater" && part.signal === "TORCH") return !props.inputA;
+    if (part.signal === "A_ONLY" || part.signal === "B_ONLY") return logicSignalPowered(part.signal, props);
+    if (part.kind === "repeater" && (part.signal === "A" || part.signal === "TORCH")) return logicSignalPowered(part.signal, props);
     if (part.kind === "comparator") return props.output;
     if (part.kind === "observer") return part.input === "A" ? props.inputA : part.input === "B" ? props.inputB : false;
   }
+  if (circuitId === "XNOR" && props.xnorVariant === "piston") return logicSignalPowered(part.signal, props);
   if (circuitId === "XNOR") {
     const leftTerm = props.inputA && props.inputB;
     const rightTerm = !props.inputA && !props.inputB;
@@ -653,7 +666,9 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const parts = props.layout ?? REDSTONE_LOGIC_LAYOUTS[circuitId];
   if (!parts) return false;
   root.userData.circuitId = circuitId;
-  root.userData.xorVariant = props.xorVariant ?? "dropper-hopper";
+  const pistonLayout = (circuitId === "XOR" && props.xorVariant === "piston")
+    || (circuitId === "XNOR" && props.xnorVariant === "piston");
+  root.userData.pistonLayout = pistonLayout;
   const maxX = Math.max(...parts.map((part) => part.x));
   const maxZ = Math.max(...parts.map((part) => part.z));
   const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
@@ -665,7 +680,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const key = `${part.layer}:${part.x}:${part.z}`;
     partsByCell.set(key, [...(partsByCell.get(key) ?? []), part]);
   }
-  const movedStoneParts = circuitId === "XOR"
+  const movedStoneParts = pistonLayout
     ? parts.filter((part) => part.kind === "stone" && part.movable && layoutPartPowered(part, props, circuitId))
     : [];
   const movedStoneOrigins = new Set(movedStoneParts.map((part) => `${part.layer}:${part.x}:${part.z}`));
@@ -673,7 +688,7 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     const offset = layoutOffset(part.facing);
     return `${part.layer + offset.layer}:${part.x + offset.x}:${part.z + offset.z}`;
   }));
-  const pistonVariant = circuitId === "XOR" && props.xorVariant === "piston";
+  const pistonVariant = pistonLayout;
   const visibleDust = parts.filter((part) => {
     if (part.kind !== "dust" || !pistonVariant) return part.kind === "dust";
     if (movedStoneDestinations.has(`${part.layer}:${part.x}:${part.z}`)) return false;
@@ -786,7 +801,8 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
     };
     const connectionPowered = (neighbor: LogicLayoutPart) => {
       const neighborPowered = logicDustPowered(neighbor, props, circuitId);
-      return circuitId === "XOR" ? powered && neighborPowered : powered || neighborPowered;
+      return circuitId === "XOR" || (circuitId === "XNOR" && props.xnorVariant === "piston")
+        ? powered && neighborPowered : powered || neighborPowered;
     };
     const steppedSegment = (neighbor: LogicLayoutPart, dx: number, dz: number) => {
       const highPart = part.layer > neighbor.layer ? part : neighbor;
