@@ -610,6 +610,8 @@ function logicComponentPowered(part: LogicLayoutPart, props: Props, circuitId: s
   if (circuitId === "XOR") {
     if (part.signal === "A_ONLY") return props.inputA && !props.inputB;
     if (part.signal === "B_ONLY") return !props.inputA && props.inputB;
+    if (part.kind === "repeater" && part.signal === "A") return props.inputA;
+    if (part.kind === "repeater" && part.signal === "TORCH") return !props.inputA;
     if (part.kind === "comparator") return props.output;
     if (part.kind === "observer") return part.input === "A" ? props.inputA : part.input === "B" ? props.inputB : false;
   }

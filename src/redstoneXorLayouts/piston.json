@@ -39,7 +39,7 @@
     "x": 1,
     "z": 0,
     "facing": "east",
-    "signal": "A_ONLY"
+    "signal": "TORCH"
   },
   {
     "layer": 0,
@@ -47,7 +47,7 @@
     "x": 1,
     "z": 1,
     "facing": "east",
-    "signal": "B_ONLY"
+    "signal": "A"
   },
   {
     "layer": 0,

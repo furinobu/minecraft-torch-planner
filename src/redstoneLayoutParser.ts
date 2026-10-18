@@ -12,7 +12,7 @@ export type LogicLayoutPart = {
   powered?: boolean;
   input?: "A" | "B" | "C" | "SEL";
   label?: string;
-  signal?: "A" | "B" | "A_ONLY" | "B_ONLY" | "SAME" | "OUTPUT";
+  signal?: "A" | "B" | "A_ONLY" | "B_ONLY" | "SAME" | "OUTPUT" | "TORCH";
 };
 
 const PART_FIELDS = new Set([
@@ -21,7 +21,7 @@ const PART_FIELDS = new Set([
 const KINDS = ["lever", "dust", "stone", "wall-torch", "torch", "repeater", "comparator", "piston", "dropper", "hopper", "observer", "lamp"] as const;
 const FACINGS = ["north", "east", "south", "west", "up", "down"] as const;
 const INPUTS = ["A", "B", "C", "SEL"] as const;
-const SIGNALS = ["A", "B", "A_ONLY", "B_ONLY", "SAME", "OUTPUT"] as const;
+const SIGNALS = ["A", "B", "A_ONLY", "B_ONLY", "SAME", "OUTPUT", "TORCH"] as const;
 
 type JsonObject = Record<string, unknown>;
 
