@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { CircuitDefinition } from "./redstoneCircuits";
+import type { LogicLayoutPart } from "./redstoneLogicLayouts";
 import { PISTON_XNOR_LAYOUT } from "./redstoneXnorLayout";
 
 const RedstoneCircuit3D = lazy(() => import("./RedstoneCircuit3D"));
@@ -24,7 +25,7 @@ function Toggle({ label, value, onClick }: { label: string; value: boolean; onCl
   return <button className={`gate-switch ${value ? "on" : ""}`} type="button" onClick={onClick} aria-pressed={value}><span>{label}</span><b>{value ? "1 · ON" : "0 · OFF"}</b></button>;
 }
 
-export default function CircuitBehaviorDemo({ circuit, xnorVariant = "full" }: { circuit: CircuitDefinition; xnorVariant?: "full" | "piston" }) {
+export default function CircuitBehaviorDemo({ circuit, xnorVariant = "full", xnorLayout }: { circuit: CircuitDefinition; xnorVariant?: "full" | "piston"; xnorLayout?: LogicLayoutPart[] }) {
   const [a, setA] = useState(false);
   const [b, setB] = useState(false);
   const [c, setC] = useState(false);
@@ -125,7 +126,7 @@ export default function CircuitBehaviorDemo({ circuit, xnorVariant = "full" }: {
     <Suspense fallback={<div className="redstone-3d-loading">Loading 3D circuit…</div>}>
       <RedstoneCircuit3D
         circuit={circuit}
-        layout={pistonXnor ? PISTON_XNOR_LAYOUT : undefined}
+        layout={pistonXnor ? xnorLayout ?? PISTON_XNOR_LAYOUT : undefined}
         xnorVariant={circuit.id === "XNOR" ? xnorVariant : undefined}
         variantLabel={pistonXnor ? "Compact piston XNOR (I)" : undefined}
         inputA={a}

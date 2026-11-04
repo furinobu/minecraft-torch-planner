@@ -342,7 +342,8 @@ function layoutPosition(part: LogicLayoutPart, offsetX: number, offsetZ: number)
 
 function addLayoutStone(THREE: Three, root: Group, x: number, y: number, z: number, movable = false) {
   const pistonLayout = root.userData.pistonLayout === true;
-  const color = pistonLayout ? movable ? 0x38383b : 0x232326 : movable ? 0x55c6c4
+  const color = root.userData.pistonXnorLayout === true ? movable ? 0x55c6c4 : 0x858b81
+    : pistonLayout ? movable ? 0x38383b : 0x232326 : movable ? 0x55c6c4
     : root.userData.circuitId === "XOR" ? y < LOGIC_LAYER / 2 ? 0xf0dfb8 : 0xd5dbc9 : 0x777c77;
   box(THREE, root, x, y + 0.46, z, 0.96, 0.92, 0.96, color);
 }
@@ -669,6 +670,8 @@ function buildLogicLayout(THREE: Three, root: Group, props: Props, circuitId: st
   const pistonLayout = (circuitId === "XOR" && props.xorVariant === "piston")
     || (circuitId === "XNOR" && props.xnorVariant === "piston");
   root.userData.pistonLayout = pistonLayout;
+  root.userData.pistonXnorLayout = circuitId === "XNOR" && props.xnorVariant === "piston";
+  if (root.userData.pistonXnorLayout) root.userData.fitMargin = 0.52;
   const maxX = Math.max(...parts.map((part) => part.x));
   const maxZ = Math.max(...parts.map((part) => part.z));
   const offsetX = maxX / 2 - (maxX % 2 === 0 ? 0.5 : 0);
@@ -1115,6 +1118,8 @@ function updateCircuit(engine: Engine, props: Props, shouldFitView: boolean) {
   const { THREE, root } = engine;
   const gate = props.gate ?? "AND";
   clearGroup(THREE, root);
+  delete root.userData.pistonXnorLayout;
+  delete root.userData.fitMargin;
   if (props.circuit?.category === "Logic") buildLogicLayout(THREE, root, props, props.circuit.id);
   else if (props.circuit) buildCatalogCircuit(THREE, root, props);
   else if (props.clock) buildClockCircuit(THREE, root, props);
@@ -1203,7 +1208,8 @@ export default function RedstoneCircuit3D(props: Props) {
           const maxX = Math.max(...corners.map((point) => Math.abs(point.project(camera).x)));
           const maxY = Math.max(...corners.map((point) => Math.abs(point.project(camera).y)));
           const boundsSize = bounds.getSize(new THREE.Vector3());
-          const fitMargin = props.circuit?.id === "implication" ? 0.52 : Math.max(boundsSize.x, boundsSize.z) > 8 ? 0.5 : 0.72;
+          const fitMargin = typeof root.userData.fitMargin === "number" ? root.userData.fitMargin
+            : props.circuit?.id === "implication" ? 0.52 : Math.max(boundsSize.x, boundsSize.z) > 8 ? 0.5 : 0.72;
           camera.zoom = Math.max(controls.minZoom, Math.min(controls.maxZoom, fitMargin / maxX, fitMargin / maxY));
           camera.updateProjectionMatrix();
           controls.update();

@@ -4,6 +4,8 @@ import CircuitBehaviorDemo from "./CircuitBehaviorDemo";
 import { CIRCUIT_CATEGORIES, REDSTONE_CIRCUITS } from "./redstoneCircuits";
 import { DROPPER_HOPPER_XOR_LAYOUT, PISTON_XOR_LAYOUT } from "./redstoneXorLayout";
 import type { LogicLayoutPart } from "./redstoneLogicLayouts";
+import { parseLogicLayoutJson } from "./redstoneLayoutParser";
+import { PISTON_XNOR_LAYOUT } from "./redstoneXnorLayout";
 import XorLayoutEditor from "./XorLayoutEditor";
 
 const RedstoneCircuit3D = lazy(() => import("./RedstoneCircuit3D"));
@@ -44,6 +46,7 @@ const XOR_LAYOUT_STORAGE_KEYS: Record<XorVariant, string> = {
   "dropper-hopper": "minecraft-torch-planner:xor-layout:v2",
   piston: "minecraft-torch-planner:xor-piston-layout:v3",
 };
+const XNOR_PISTON_LAYOUT_STORAGE_KEY = "minecraft-torch-planner:xnor-piston-layout:v1";
 
 function loadXorLayout(key: string, fallback: LogicLayoutPart[]) {
   const saved = window.localStorage.getItem(key);
@@ -53,6 +56,16 @@ function loadXorLayout(key: string, fallback: LogicLayoutPart[]) {
     return Array.isArray(layout) ? layout as LogicLayoutPart[] : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function loadXnorLayout() {
+  const saved = window.localStorage.getItem(XNOR_PISTON_LAYOUT_STORAGE_KEY);
+  if (!saved) return PISTON_XNOR_LAYOUT;
+  try {
+    return parseLogicLayoutJson(saved, "piston XNOR");
+  } catch {
+    return PISTON_XNOR_LAYOUT;
   }
 }
 
@@ -115,6 +128,10 @@ export default function RedstoneLearning() {
   });
   const [xorVariant, setXorVariant] = useState<XorVariant>("dropper-hopper");
   const [xnorVariant, setXnorVariant] = useState<XnorVariant>(() => new URLSearchParams(window.location.search).get("variant") === "xnor-piston" ? "piston" : "full");
+  const [xnorLayout, setXnorLayout] = useState<LogicLayoutPart[]>(() => loadXnorLayout());
+  const [xnorJsonDraft, setXnorJsonDraft] = useState(() => JSON.stringify(xnorLayout, null, 2));
+  const [xnorJsonError, setXnorJsonError] = useState("");
+  const [xnorJsonEditorOpen, setXnorJsonEditorOpen] = useState(false);
   const [xorLayout, setXorLayout] = useState<LogicLayoutPart[]>(() => loadXorLayout(XOR_LAYOUT_STORAGE_KEYS["dropper-hopper"], DROPPER_HOPPER_XOR_LAYOUT));
   const [pistonXorLayout, setPistonXorLayout] = useState<LogicLayoutPart[]>(() => loadXorLayout(XOR_LAYOUT_STORAGE_KEYS.piston, PISTON_XOR_LAYOUT));
   const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
@@ -154,6 +171,11 @@ export default function RedstoneLearning() {
     window.localStorage.setItem(XOR_LAYOUT_STORAGE_KEYS.piston, JSON.stringify(pistonXorLayout));
   }, [pistonXorLayout]);
 
+  useEffect(() => {
+    window.localStorage.setItem(XNOR_PISTON_LAYOUT_STORAGE_KEY, JSON.stringify(xnorLayout));
+    setXnorJsonDraft(JSON.stringify(xnorLayout, null, 2));
+  }, [xnorLayout]);
+
   const selectCircuit = (id: string) => {
     const nextUrl = selectionHref(id);
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -178,6 +200,31 @@ export default function RedstoneLearning() {
     const nextUrl = `${url.pathname}${url.search}${url.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (currentUrl !== nextUrl) window.history.pushState({ redstoneSelection: "XNOR", redstoneVariant: variant }, "", nextUrl);
+  };
+
+  const applyXnorJson = () => {
+    try {
+      setXnorLayout(parseLogicLayoutJson(xnorJsonDraft, "piston XNOR"));
+      setXnorJsonError("");
+    } catch (error) {
+      setXnorJsonError(error instanceof Error ? error.message : "The layout JSON is invalid.");
+    }
+  };
+
+  const resetXnorJson = () => {
+    setXnorLayout(PISTON_XNOR_LAYOUT);
+    setXnorJsonDraft(JSON.stringify(PISTON_XNOR_LAYOUT, null, 2));
+    setXnorJsonError("");
+  };
+
+  const downloadXnorJson = () => {
+    const file = new Blob([JSON.stringify(xnorLayout, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "xnor-piston-layout.json";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   useEffect(() => {
@@ -395,7 +442,23 @@ export default function RedstoneLearning() {
           {activeCircuitDefinition.id === "XNOR" && xnorVariant === "piston" ? <><span>3 × 5 × 2 blocks</span><span>1 torch</span><span>3 repeaters</span><span>Sticky piston</span></>
             : <>{activeCircuitDefinition.width !== undefined && activeCircuitDefinition.depth !== undefined && <span>{activeCircuitDefinition.width} × {activeCircuitDefinition.depth} blocks</span>}{activeCircuitDefinition.layers !== undefined && <span>{activeCircuitDefinition.layers} {activeCircuitDefinition.layers === 1 ? "layer" : "layers"}</span>}{activeCircuitDefinition.blocks !== undefined && <span>{activeCircuitDefinition.blocks} blocks</span>}</>}
         </div>
-        <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} xnorVariant={activeCircuitDefinition.id === "XNOR" ? xnorVariant : undefined} />
+        <CircuitBehaviorDemo key={activeCircuit} circuit={activeCircuitDefinition} xnorVariant={activeCircuitDefinition.id === "XNOR" ? xnorVariant : undefined} xnorLayout={activeCircuitDefinition.id === "XNOR" ? xnorLayout : undefined} />
+        {activeCircuitDefinition.id === "XNOR" && xnorVariant === "piston" && <section className="xnor-json-editor">
+          <div className="xnor-json-editor-heading">
+            <div><span className="redstone-kicker">CUSTOMIZE THIS CIRCUIT</span><p>Edit the JSON here and apply it to the 3D preview. Changes save in this browser.</p></div>
+            <button className="small-button" type="button" aria-expanded={xnorJsonEditorOpen} onClick={() => setXnorJsonEditorOpen((open) => !open)}>{xnorJsonEditorOpen ? "Close JSON editor" : "Edit layout JSON"}</button>
+          </div>
+          {xnorJsonEditorOpen && <>
+            <p className="xnor-json-help">x and z are floor coordinates; layer is height. Signals: A, B, TORCH, OUTPUT, SAME, A_ONLY, B_ONLY.</p>
+            <textarea aria-label="Compact piston XNOR layout JSON" spellCheck={false} value={xnorJsonDraft} onChange={(event) => { setXnorJsonDraft(event.target.value); setXnorJsonError(""); }} />
+            {xnorJsonError && <p className="xnor-json-error" role="alert">{xnorJsonError}</p>}
+            <div className="xnor-json-actions">
+              <button className="small-button" type="button" onClick={applyXnorJson}>Apply to preview</button>
+              <button className="small-button" type="button" onClick={downloadXnorJson}>Download JSON</button>
+              <button className="small-button" type="button" onClick={resetXnorJson}>Reset reference</button>
+            </div>
+          </>}
+        </section>}
         <div className="redstone-reference-links">
           <a href={`https://redstonery.com/circuits/${activeCircuitDefinition.path}/`} target="_blank" rel="noreferrer">{activeCircuitDefinition.id === "implication" ? "View original Minecraft layout ↗" : "Open the tested Minecraft layout ↗"}</a>
           {activeCircuitDefinition.id === "XNOR" && xnorVariant === "piston" && <a href="https://minecraft.fandom.com/wiki/Redstone_circuits/Logic/XNOR" target="_blank" rel="noreferrer">Minecraft Wiki · Compact piston XNOR gate (I) ↗</a>}

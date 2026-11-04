@@ -228,6 +228,14 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .xor-variant-picker, .circuit-variant-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .xor-variant-picker button, .circuit-variant-picker button { padding: 7px 10px; border: 1px solid #3a4138; border-radius: 4px; background: #20251f; color: #9da397; font: 9px 'DM Mono', monospace; cursor: pointer; }
 .xor-variant-picker button:hover, .xor-variant-picker button.selected, .circuit-variant-picker button:hover, .circuit-variant-picker button.selected { border-color: #887149; background: #332b20; color: #f0c376; }
+.xnor-json-editor { margin-top: 10px; padding: 12px; border: 1px solid #353c32; border-radius: 6px; background: #1b201a; }
+.xnor-json-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.xnor-json-editor-heading p, .xnor-json-help, .xnor-json-error { margin: 5px 0 0; color: #879080; font-size: 9px; line-height: 1.5; }
+.xnor-json-help { margin: 12px 0 6px; }
+.xnor-json-editor textarea { display: block; width: 100%; min-height: 320px; resize: vertical; padding: 10px; border: 1px solid #3a4138; border-radius: 4px; background: #121611; color: #d3ddca; font: 10px/1.55 'DM Mono', monospace; tab-size: 2; }
+.xnor-json-editor textarea:focus { outline: 1px solid #887149; border-color: #887149; }
+.xnor-json-error { margin-top: 8px; color: #ff9a83; }
+.xnor-json-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .redstone-build-card { display: grid; grid-template-columns: minmax(180px, .65fr) minmax(300px, 1.35fr); gap: 12px 20px; align-items: center; margin-top: 12px; padding: 14px; }
 .redstone-build-card h3, .memory-concept h3 { margin: 5px 0 7px; color: #e3e7db; font: 600 12px 'Space Grotesk', sans-serif; }
 .redstone-build-card p, .memory-concept p { margin: 0; color: #969e90; font-size: 10px; line-height: 1.55; }
